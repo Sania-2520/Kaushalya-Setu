@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Briefcase, Award, Users, MessageSquare, Zap } from 'lucide-react';
+import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -16,7 +16,7 @@ const features = [
     icon: <Award className="h-10 w-10 text-primary" />,
     title: 'Micro-Certifications',
     description: 'Earn verifiable digital skill badges through short courses and in-app assessments.',
-    link: '/certifications', // Placeholder link
+    link: '/certifications',
   },
   {
     icon: <Zap className="h-10 w-10 text-primary" />,
@@ -25,10 +25,10 @@ const features = [
     link: '/portfolio',
   },
   {
-    icon: <Users className="h-10 w-10 text-primary" />,
+    icon: <Lightbulb className="h-10 w-10 text-primary" />,
     title: 'Career Matchmaking',
     description: 'Get smart recommendations for internships and jobs based on your unique skills and portfolio.',
-    link: '/jobs',
+    link: '/smart-recommendations',
   },
   {
     icon: <MessageSquare className="h-10 w-10 text-primary" />,
