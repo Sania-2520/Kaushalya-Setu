@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -75,6 +76,8 @@ const dummyStudentProfile = {
   desiredJobType: "Internship"
 };
 
+const ALL_TYPES_FILTER_VALUE = "ALL_TYPES_FILTER_VALUE";
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
@@ -83,7 +86,7 @@ export default function JobsPage() {
   const [newJob, setNewJob] = useState<Partial<Job>>({ skillsRequired: [] });
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
-  const [jobTypeFilter, setJobTypeFilter] = useState("");
+  const [jobTypeFilter, setJobTypeFilter] = useState(""); // Initial empty string shows placeholder
 
   const { toast } = useToast();
 
@@ -164,11 +167,15 @@ export default function JobsPage() {
     setNewJob({ skillsRequired: [] });
   };
   
-  const filteredJobs = jobs.filter(job => 
-    job.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (locationFilter === "" || job.location.toLowerCase().includes(locationFilter.toLowerCase())) &&
-    (jobTypeFilter === "" || job.type === jobTypeFilter)
-  );
+  const filteredJobs = jobs.filter(job => {
+    const titleMatch = job.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const locationMatch = locationFilter === "" || job.location.toLowerCase().includes(locationFilter.toLowerCase());
+    
+    const showAllJobTypes = jobTypeFilter === "" || jobTypeFilter === ALL_TYPES_FILTER_VALUE;
+    const jobTypeMatch = showAllJobTypes || job.type === jobTypeFilter;
+
+    return titleMatch && locationMatch && jobTypeMatch;
+  });
 
   return (
     <div className="space-y-8">
@@ -211,7 +218,7 @@ export default function JobsPage() {
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value={ALL_TYPES_FILTER_VALUE}>All Types</SelectItem>
                 <SelectItem value="Internship">Internship</SelectItem>
                 <SelectItem value="Full-time">Full-time</SelectItem>
                 <SelectItem value="Part-time">Part-time</SelectItem>
@@ -409,3 +416,4 @@ function JobCard({ job, isRecommended }: JobCardProps) {
     </Card>
   );
 }
+
