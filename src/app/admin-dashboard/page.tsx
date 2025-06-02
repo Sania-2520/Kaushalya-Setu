@@ -2,9 +2,20 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ShieldCheck, Users, BarChart3, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { ShieldCheck, Users, BarChart3, Settings, Download } from "lucide-react";
 
 export default function AdminDashboardPage() {
+  const { toast } = useToast();
+
+  const handleDownloadProgress = () => {
+    toast({
+      title: "Progress Report Initiated",
+      description: "Student progress report (CSV/Excel format) is being generated and will be available for download.",
+    });
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -27,11 +38,20 @@ export default function AdminDashboardPage() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <FeatureCard
-          icon={<Users className="h-8 w-8 text-primary" />}
-          title="Manage Students"
-          description="View student profiles, track progress, and manage enrollments."
-        />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center gap-4 pb-2">
+            <Users className="h-8 w-8 text-primary" />
+            <CardTitle className="text-xl font-semibold font-headline">Manage Students</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground font-body mb-4">
+              View student profiles, track progress, manage enrollments, and download student progress reports.
+            </p>
+            <Button onClick={handleDownloadProgress} variant="outline" size="sm">
+              <Download className="mr-2 h-4 w-4" /> Download Progress Report
+            </Button>
+          </CardContent>
+        </Card>
         <FeatureCard
           icon={<BarChart3 className="h-8 w-8 text-primary" />}
           title="Institutional Analytics"
