@@ -1,5 +1,8 @@
+
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,8 +11,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserPlus } from "lucide-react";
 import Link from "next/link";
 import Logo from "@/components/shared/logo";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleSignup = () => {
+    // Simulate form validation (name, email, password inputs are not currently controlled)
+    // For this example, we'll just check if a role is selected.
+    if (!selectedRole) {
+      toast({
+        title: "Role not selected",
+        description: "Please select your role to complete signup.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Simulate successful signup
+    toast({
+      title: "Signup Successful!",
+      description: `Welcome! Redirecting you to the ${selectedRole} portal...`,
+    });
+
+    // Redirect based on selected role
+    if (selectedRole === "student") {
+      router.push("/portfolio");
+    } else if (selectedRole === "industry") {
+      router.push("/jobs");
+    } else if (selectedRole === "polytechnic") {
+      router.push("/admin-dashboard");
+    } else {
+      // Fallback or error if role is somehow not one of the expected
+      router.push("/");
+    }
+  };
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] py-12">
       <Card className="w-full max-w-md shadow-xl">
@@ -39,7 +78,7 @@ export default function SignupPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">I am a...</Label>
-            <Select>
+            <Select value={selectedRole} onValueChange={setSelectedRole}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select your role" />
               </SelectTrigger>
@@ -52,7 +91,7 @@ export default function SignupPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
-          <Button className="w-full">
+          <Button className="w-full" onClick={handleSignup}>
             <UserPlus className="mr-2 h-4 w-4" /> Sign Up
           </Button>
           <p className="text-center text-sm text-muted-foreground">
