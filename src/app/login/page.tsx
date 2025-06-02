@@ -28,7 +28,6 @@ function LoginComponent() {
   }, [searchParams]);
 
   const handleLogin = () => {
-    // Basic validation
     if (!email || !password) {
       toast({
         title: "Missing Information",
@@ -38,13 +37,24 @@ function LoginComponent() {
       return;
     }
     
+    // Simulate fetching user data based on email and role (replace with actual Firestore fetch)
+    // For now, we'll assume login is successful if fields are filled and try to use stored signup data.
     if (isClient) {
       localStorage.setItem('isLoggedIn', 'true');
       const userRoleToStore = role || "student"; 
       localStorage.setItem('userRole', userRoleToStore);
-      if (!localStorage.getItem('userName')) {
-        localStorage.setItem('userName', email.split('@')[0] || "User");
+      localStorage.setItem('userEmail', email);
+
+      // Simulate fetching profile details - for a real app, this would be from Firestore
+      // For demo, if they signed up as industry, use that company name. Otherwise, derive from email.
+      let userNameToDisplay = email.split('@')[0] || "User";
+      if (userRoleToStore === 'industry' && localStorage.getItem('companyName')) {
+        userNameToDisplay = localStorage.getItem('companyName')!;
+        // We could also pre-fill companyLogoUrl, industrySector, skillsSeeking to localStorage from a "fetch"
+      } else if (localStorage.getItem('userName')) {
+         userNameToDisplay = localStorage.getItem('userName')!;
       }
+       localStorage.setItem('userName', userNameToDisplay); // This might overwrite if previous signup was different type
       
       toast({
         title: "Login Successful!",
@@ -56,7 +66,7 @@ function LoginComponent() {
           router.push("/portfolio");
           break;
         case "industry":
-          router.push("/jobs"); 
+          router.push("/industry-dashboard"); 
           break;
         case "polytechnic":
           router.push("/admin-dashboard");

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Target, Sparkles, GraduationCap, BarChart3, LayoutDashboard } from 'lucide-react';
+import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Target, Sparkles, GraduationCap, BarChart3, LayoutDashboard, Building, Edit, FileText, PieChart, CalendarCheck2, Search } from 'lucide-react';
 import Logo from '@/components/shared/logo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const defaultNavLinks = [
+const studentNavLinks = [
   { href: '/', label: 'Home', icon: <GraduationCap className="h-5 w-5" /> },
   { href: '/portfolio', label: 'Portfolio', icon: <Briefcase className="h-5 w-5" /> },
   { href: '/resume-reviewer', label: 'Resume Reviewer', icon: <Sparkles className="h-5 w-5" /> },
@@ -23,18 +23,30 @@ const defaultNavLinks = [
 ];
 
 const adminNavLinks = [
+  { href: '/admin-dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
   { href: '/admin-dashboard/manage-students', label: 'Manage Students', icon: <Users className="h-5 w-5" /> },
-  { href: '/admin-dashboard/analytics', label: 'Institutional Analytics', icon: <BarChart3 className="h-5 w-5" /> },
-  { href: '/admin-dashboard/platform-settings', label: 'Platform Settings', icon: <Settings className="h-5 w-5" /> },
+  { href: '/admin-dashboard/analytics', label: 'Analytics', icon: <BarChart3 className="h-5 w-5" /> },
+  { href: '/admin-dashboard/platform-settings', label: 'Settings', icon: <Settings className="h-5 w-5" /> },
 ];
+
+const industryNavLinks = [
+    { href: '/industry-dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5" /> },
+    { href: '/industry-dashboard/post-job', label: 'Post Job/Internship', icon: <Edit className="h-5 w-5" /> },
+    { href: '/industry-dashboard/schedule-webinar', label: 'Schedule Webinar', icon: <CalendarCheck2 className="h-5 w-5" /> },
+    { href: '/industry-dashboard/review-portfolios', label: 'Review Portfolios', icon: <Search className="h-5 w-5" /> },
+    { href: '/industry-dashboard/track-impact', label: 'Track Impact', icon: <PieChart className="h-5 w-5" /> },
+];
+
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [userName, setUserName] = useState("My Account");
-  const [polytechnicName, setPolytechnicName] = useState<string | null>(null);
+  const [userName, setUserName] = useState("My Account"); // Could be student name or company name
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [polytechnicName, setPolytechnicName] = useState<string | null>(null); // For student or polytechnic admin
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null); // For industry partner
   const [userRole, setUserRole] = useState<string | null>(null);
 
 
@@ -48,15 +60,19 @@ export default function Header() {
       setLoggedIn(userLoggedIn);
       if (userLoggedIn) {
         setUserName(localStorage.getItem('userName') || "User");
+        setUserEmail(localStorage.getItem('userEmail'));
         setPolytechnicName(localStorage.getItem('polytechnicName'));
-        setUserRole(localStorage.getItem('userRole')); // Fetch role when logged in
+        setCompanyLogoUrl(localStorage.getItem('companyLogoUrl'));
+        setUserRole(localStorage.getItem('userRole'));
       } else {
         setUserName("My Account");
+        setUserEmail(null);
         setPolytechnicName(null);
-        setUserRole(null); // Clear role when logged out
+        setCompanyLogoUrl(null);
+        setUserRole(null);
       }
     }
-  }, [pathname, isClient]); // Re-run when path changes or client status is confirmed
+  }, [pathname, isClient]);
 
 
   const handleLogout = () => {
@@ -64,34 +80,37 @@ export default function Header() {
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('userRole');
       localStorage.removeItem('userName');
+      localStorage.removeItem('userEmail');
       localStorage.removeItem('polytechnicName');
+      localStorage.removeItem('companyName');
+      localStorage.removeItem('companyLogoUrl');
+      localStorage.removeItem('industrySector');
+      localStorage.removeItem('skillsSeeking');
       setLoggedIn(false);
       setUserRole(null);
       router.push('/login');
     }
   };
 
-  // Determine navLinksToDisplay based on loggedIn status and userRole
   let navLinksToDisplay: Array<{ href: string; label: string; icon: JSX.Element }> = [];
   if (loggedIn) {
     if (userRole === 'student') {
-      navLinksToDisplay = defaultNavLinks;
+      navLinksToDisplay = studentNavLinks;
     } else if (userRole === 'polytechnic') {
       navLinksToDisplay = adminNavLinks;
+    } else if (userRole === 'industry') {
+      navLinksToDisplay = industryNavLinks;
     }
-    // For any other role (e.g., 'industryPartner') or if role is null,
-    // navLinksToDisplay will remain empty, effectively hiding defaultNavLinks and adminNavLinks for them.
   }
-  // If not loggedIn, navLinksToDisplay also remains empty, so no student/admin links are shown.
 
-
-  const isAdminPortal = loggedIn && userRole === 'polytechnic';
+  const isSpecialPortal = loggedIn && (userRole === 'polytechnic' || userRole === 'industry');
+  const portalDashboardPath = userRole === 'polytechnic' ? "/admin-dashboard" : userRole === 'industry' ? "/industry-dashboard" : "/";
 
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
-        <Link href={isAdminPortal ? "/admin-dashboard" : "/"} className="mr-6 flex items-center space-x-2">
+        <Link href={isSpecialPortal ? portalDashboardPath : "/"} className="mr-6 flex items-center space-x-2">
           <Logo />
           <span className="font-bold sm:inline-block font-headline text-primary">
             Kaushalya Setu
@@ -119,7 +138,11 @@ export default function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src="https://placehold.co/40x40.png?text=U" alt="User Avatar" data-ai-hint="user avatar"/>
+                    {userRole === 'industry' && companyLogoUrl ? (
+                         <AvatarImage src={companyLogoUrl} alt={userName} data-ai-hint="company logo small"/>
+                    ) : (
+                         <AvatarImage src="https://placehold.co/40x40.png?text=U" alt={userName} data-ai-hint="user avatar"/>
+                    )}
                     <AvatarFallback>{userName.substring(0,1).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
@@ -128,20 +151,26 @@ export default function Header() {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{userName}</p>
-                    {polytechnicName && userRole === 'student' && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
-                    {isAdminPortal && <p className="text-xs leading-none text-muted-foreground">Admin Portal</p>}
+                    {userEmail && <p className="text-xs leading-none text-muted-foreground">{userEmail}</p>}
+                    {polytechnicName && (userRole === 'student' || userRole === 'polytechnic') && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {!isAdminPortal && userRole === 'student' && ( // Show profile only for students if not in admin portal
+                 {userRole === 'student' && (
                   <DropdownMenuItem onClick={() => router.push('/portfolio')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
                 )}
-                 <DropdownMenuItem onClick={() => router.push(isAdminPortal ? '/admin-dashboard' : '/account-settings')}>
+                {isSpecialPortal && (
+                     <DropdownMenuItem onClick={() => router.push(portalDashboardPath)}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                    </DropdownMenuItem>
+                )}
+                 <DropdownMenuItem onClick={() => router.push('/account-settings')}>
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>{isAdminPortal ? "Dashboard" : "Settings"}</span>
+                  <span>Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
