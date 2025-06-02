@@ -64,19 +64,13 @@ const jsearchApiFlow = ai.defineFlow(
     const searchParams = new URLSearchParams({
       query: query,
       page: page.toString(),
-      num_pages: '1', // JSearch's num_pages seems to act more like items per page, or is complex. Let's fetch ~20 items per page.
-                     // The API is a bit inconsistent with total results vs. pagination.
-                     // We'll request for 20 results and estimate total_pages. RapidAPI usually limits results per page.
+      num_pages: '1', 
     });
 
     if (employmentTypes) {
       searchParams.append('employment_types', employmentTypes.toUpperCase());
     }
     
-    // Rapid API's JSearch has a specific parameter for job_requirements like 'no_experience' etc.
-    // And 'date_posted' (all, today, 3days, week, month)
-    // For this implementation, we are keeping it simple.
-
     const url = `https://${apiHost}/search?${searchParams.toString()}`;
 
     try {
@@ -91,31 +85,27 @@ const jsearchApiFlow = ai.defineFlow(
       if (!response.ok) {
         const errorBody = await response.text();
         console.error(`JSearch API error: ${response.status} ${response.statusText}`, errorBody);
-        throw new Error(`Failed to fetch jobs from JSearch API: ${response.statusText}`);
+        throw new Error(`Failed to fetch jobs from JSearch API: ${response.statusText} - ${errorBody}`);
       }
 
       const data = await response.json();
       
-      // JSearch API's `total` field might not always be present or accurate.
-      // We'll estimate total_pages based on typical items per page if needed.
-      // JSearch often returns about 20 items if `num_pages` isn't highly effective as items per page.
+      // JSearch often returns about 20 items per request with num_pages=1
       const itemsPerPage = data.data?.length || 20; 
-      // The 'total' field in JSearch response often gives a large number that doesn't match pagination.
-      // It's safer to not rely on it for total_pages or provide a rough estimate.
-      // For simplicity, we'll assume only one page of results based on `num_pages: '1'`.
-      // If you need more sophisticated pagination, you'll need to explore JSearch's behavior more.
-      const totalJobs = data.parameters?.num_pages * (data.data?.length || 0) ; // This is a guess, JSearch is tricky.
-      const totalPages = data.data?.length > 0 ? page + (data.data.length === 20 ? 1: 0) : page; // Basic: if we get 20, assume there might be more.
+      // The 'total' or 'estimated_total_results' field in JSearch can be unreliable.
+      // A simple pagination strategy: if 20 items are returned, assume there might be more.
+      const totalJobs = data.estimated_total_results || (data.data?.length || 0) ; 
+      const totalPages = data.data?.length > 0 ? page + (data.data.length === itemsPerPage ? 1: 0) : page; 
 
       return {
-        jobs: data.data || [], // Ensure 'data' key exists and has jobs
-        total_jobs: totalJobs || (data.data?.length || 0),
+        jobs: data.data || [], 
+        total_jobs: totalJobs,
         total_pages: totalPages,
       };
     } catch (error) {
       console.error('Error in jsearchApiFlow:', error);
-      // Return empty results or re-throw for caller to handle
-      return { jobs: [], total_jobs: 0, total_pages: 1 };
+      // Re-throw for the frontend to handle display of the error
+      throw new Error(`JSearch API request failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 );

@@ -15,13 +15,12 @@ import Link from 'next/link';
 import { INDIAN_CITIES, JOB_TYPES, ALL_FILTER_VALUE } from '@/lib/constants';
 import { searchJobs, JSearchInput, JSearchOutput, JSearchJob } from '@/ai/flows/jsearch-flow';
 
-// Mapping for display names to JSearch API values for Job Types
 const JOB_TYPE_API_VALUES: { [key: string]: string } = {
   "Internship": "INTERN",
   "Full-time": "FULLTIME",
   "Part-time": "PARTTIME",
-  "Contract": "CONTRACTOR", // JSearch uses CONTRACTOR for Contract
-  "Freelance": "FREELANCE", // Assuming JSearch supports this, otherwise map to CONTRACTOR or similar
+  "Contract": "CONTRACTOR",
+  "Freelance": "FREELANCE",
 };
 
 export default function JobsPage() {
@@ -29,8 +28,8 @@ export default function JobsPage() {
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const [searchTerm, setSearchTerm] = useState("Software Developer"); // Default search
-  const [selectedLocation, setSelectedLocation] = useState(INDIAN_CITIES[0]); // Default to Bengaluru
+  const [searchTerm, setSearchTerm] = useState("Software Developer");
+  const [selectedLocation, setSelectedLocation] = useState(INDIAN_CITIES[0]);
   const [selectedJobType, setSelectedJobType] = useState(ALL_FILTER_VALUE);
   
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,12 +37,12 @@ export default function JobsPage() {
 
   const { toast } = useToast();
 
-  const fetchJobs = useCallback(async (isNewSearch: boolean = false) => {
+  const fetchJobs = useCallback(async (pageForThisFetch: number, isNewSearchOperation: boolean) => {
     setIsLoadingJobs(true);
     setError(null);
-    if (isNewSearch) {
-      setCurrentPage(1); // Reset to page 1 for new searches
-      setJobs([]); // Clear old jobs for a new search
+
+    if (isNewSearchOperation) {
+      setJobs([]); 
     }
 
     let query = searchTerm.trim();
@@ -56,20 +55,20 @@ export default function JobsPage() {
       : undefined;
 
     const input: JSearchInput = {
-      query: query || "jobs", // Default to "jobs" if query is empty
-      page: isNewSearch ? 1 : currentPage,
+      query: query || "jobs", 
+      page: pageForThisFetch,
       employmentTypes: apiJobType,
     };
 
     try {
       const result: JSearchOutput = await searchJobs(input);
-      if (isNewSearch) {
+      if (isNewSearchOperation) {
         setJobs(result.jobs);
       } else {
         setJobs(prevJobs => [...prevJobs, ...result.jobs]);
       }
       setTotalPages(result.total_pages || 1);
-      if (result.jobs.length === 0 && (isNewSearch || currentPage === 1)) {
+      if (result.jobs.length === 0 && pageForThisFetch === 1) {
         toast({ title: "No Jobs Found", description: "Try adjusting your filters or search terms." });
       }
     } catch (err) {
@@ -77,53 +76,37 @@ export default function JobsPage() {
       const errorMessage = err instanceof Error ? err.message : "Could not fetch jobs.";
       setError(errorMessage);
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
-      setJobs([]); // Clear jobs on error
+      if (isNewSearchOperation) {
+        setJobs([]);
+      }
     } finally {
       setIsLoadingJobs(false);
     }
-  }, [searchTerm, selectedLocation, selectedJobType, currentPage, toast]);
+  }, [searchTerm, selectedLocation, selectedJobType, toast]);
 
   useEffect(() => {
-    fetchJobs(true); // Initial fetch, isNewSearch = true
-  }, [searchTerm, selectedLocation, selectedJobType]); // Re-fetch when these filters change (will reset page to 1)
+    setCurrentPage(1); 
+    fetchJobs(1, true); 
+  }, [searchTerm, selectedLocation, selectedJobType, fetchJobs]);
 
-  const handleLoadMore = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(prevPage => prevPage + 1);
-      // Trigger fetch for the next page
-       const nextPage = currentPage + 1;
-        let query = searchTerm.trim();
-        if (selectedLocation !== ALL_FILTER_VALUE && selectedLocation) {
-          query = `${query} in ${selectedLocation}`;
-        }
-        const apiJobType = selectedJobType !== ALL_FILTER_VALUE && JOB_TYPE_API_VALUES[selectedJobType] 
-          ? JOB_TYPE_API_VALUES[selectedJobType] 
-          : undefined;
-
-        const input: JSearchInput = {
-          query: query || "jobs",
-          page: nextPage,
-          employmentTypes: apiJobType,
-        };
-        setIsLoadingJobs(true);
-        searchJobs(input).then(result => {
-            setJobs(prevJobs => [...prevJobs, ...result.jobs]);
-            setTotalPages(result.total_pages || 1);
-            setCurrentPage(nextPage);
-        }).catch(err => {
-            console.error("Error fetching more jobs:", err);
-            toast({ title: "Error", description: "Could not load more jobs.", variant: "destructive" });
-        }).finally(() => setIsLoadingJobs(false));
-    }
+  const handleFilterChangeAndSearch = () => {
+    setCurrentPage(1);
+    fetchJobs(1, true);
   };
   
-  const handleFilterChangeAndSearch = () => {
-    // This function can be called by a search button if you add one,
-    // or simply rely on the useEffect for direct changes.
-    // For this setup, useEffect handles it.
-    fetchJobs(true);
+  const handleLoadMore = () => {
+    if (currentPage < totalPages && !isLoadingJobs) {
+      const nextPage = currentPage + 1;
+      fetchJobs(nextPage, false)
+        .then(() => {
+          setCurrentPage(nextPage);
+        })
+        .catch(err => {
+          // Error is already handled and toasted by fetchJobs
+          console.error("Error caught in handleLoadMore's fetchJobs call:", err);
+        });
+    }
   };
-
 
   return (
     <div className="space-y-8">
@@ -173,7 +156,7 @@ export default function JobsPage() {
           </div>
           <div className="md:col-span-2 lg:col-span-3 flex justify-end">
              <Button onClick={handleFilterChangeAndSearch} disabled={isLoadingJobs}>
-                {isLoadingJobs && searchTerm ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4" />}
+                {isLoadingJobs && currentPage === 1 ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4" />}
                 Search Jobs
             </Button>
           </div>
@@ -182,7 +165,7 @@ export default function JobsPage() {
       
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold font-headline">Job Listings ({jobs.length > 0 ? `Showing ${jobs.length} jobs` : ''})</h2>
-        {isLoadingJobs && jobs.length === 0 ? ( // Show skeletons only on initial load or full new search
+        {isLoadingJobs && jobs.length === 0 ? ( 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1,2,3,4,5,6].map(i => <JobCardSkeleton key={i} />)}
             </div>
@@ -192,7 +175,7 @@ export default function JobsPage() {
                 <AlertCircle className="h-16 w-16 text-destructive" />
                 <p className="text-destructive font-semibold text-lg">Failed to load jobs</p>
                 <p className="text-muted-foreground font-body">{error}</p>
-                <Button onClick={() => fetchJobs(true)} variant="outline">Try Again</Button>
+                <Button onClick={() => handleFilterChangeAndSearch()} variant="outline">Try Again</Button>
                 </CardContent>
             </Card>
         ) : jobs.length === 0 ? (
@@ -208,7 +191,7 @@ export default function JobsPage() {
           </div>
         )}
         
-        {!isLoadingJobs && jobs.length > 0 && currentPage < totalPages && (
+        {jobs.length > 0 && currentPage < totalPages && (
           <div className="flex justify-center mt-8">
             <Button onClick={handleLoadMore} variant="outline" disabled={isLoadingJobs}>
               {isLoadingJobs && currentPage > 1 ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
@@ -234,7 +217,7 @@ function JobCard({ job }: JobCardProps) {
     <Card className="flex flex-col overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4">
         {employer_logo ? (
-          <Image src={employer_logo} alt={`${employer_name || 'Company'} logo`} width={48} height={48} className="rounded-md border object-contain bg-white" data-ai-hint="company logo"/>
+          <Image src={employer_logo} alt={`${employer_name || 'Company'} logo`} width={48} height={48} className="rounded-md border object-contain bg-white" data-ai-hint="company logo" />
         ) : (
           <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center">
             <Building className="h-6 w-6 text-muted-foreground" />
@@ -298,3 +281,4 @@ function JobCardSkeleton() {
     </Card>
   );
 }
+
