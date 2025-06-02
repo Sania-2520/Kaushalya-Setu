@@ -24,8 +24,9 @@ const nextConfig: NextConfig = {
     // This configuration tells Webpack to provide an empty module for `async_hooks`
     // when building the client-side bundle, preventing the "Module not found" error.
     if (!isServer) {
+      config.resolve = config.resolve || {}; // Ensure config.resolve exists
       config.resolve.fallback = {
-        ...config.resolve.fallback, // Spread existing fallbacks if any
+        ...(config.resolve.fallback || {}), // Ensure config.resolve.fallback exists and spread it
         async_hooks: false, // Provide an empty module for async_hooks on the client
       };
     }
