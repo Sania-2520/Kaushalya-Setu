@@ -70,7 +70,7 @@ export default function Header() {
     }
   };
 
-  const currentNavLinks = loggedIn && userRole === 'polytechnicAdmin' ? adminNavLinks : defaultNavLinks;
+  const currentNavLinks = loggedIn && userRole === 'polytechnic' ? adminNavLinks : defaultNavLinks;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -112,12 +112,12 @@ export default function Header() {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{userName}</p>
-                    {polytechnicName && userRole !== 'polytechnicAdmin' && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
-                    {userRole === 'polytechnicAdmin' && <p className="text-xs leading-none text-muted-foreground">Admin Portal</p>}
+                    {polytechnicName && userRole !== 'polytechnic' && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
+                    {userRole === 'polytechnic' && <p className="text-xs leading-none text-muted-foreground">Admin Portal</p>}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {userRole !== 'polytechnicAdmin' && (
+                {userRole !== 'polytechnic' && (
                   <DropdownMenuItem onClick={() => router.push('/portfolio')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
