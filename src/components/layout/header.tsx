@@ -49,14 +49,15 @@ export default function Header() {
       if (userLoggedIn) {
         setUserName(localStorage.getItem('userName') || "User");
         setPolytechnicName(localStorage.getItem('polytechnicName'));
-        setUserRole(localStorage.getItem('userRole'));
+        setUserRole(localStorage.getItem('userRole')); // Fetch role when logged in
       } else {
         setUserName("My Account");
         setPolytechnicName(null);
-        setUserRole(null);
+        setUserRole(null); // Clear role when logged out
       }
     }
-  }, [pathname, isClient]);
+  }, [pathname, isClient]); // Re-run when path changes or client status is confirmed
+
 
   const handleLogout = () => {
     if (isClient) {
@@ -70,7 +71,20 @@ export default function Header() {
     }
   };
 
-  const currentNavLinks = loggedIn && userRole === 'polytechnic' ? adminNavLinks : defaultNavLinks;
+  // Determine navLinksToDisplay based on loggedIn status and userRole
+  let navLinksToDisplay: Array<{ href: string; label: string; icon: JSX.Element }> = [];
+  if (loggedIn) {
+    if (userRole === 'student') {
+      navLinksToDisplay = defaultNavLinks;
+    } else if (userRole === 'polytechnic') {
+      navLinksToDisplay = adminNavLinks;
+    }
+    // For any other role (e.g., 'industryPartner') or if role is null,
+    // navLinksToDisplay will remain empty, effectively hiding defaultNavLinks and adminNavLinks for them.
+  }
+  // If not loggedIn, navLinksToDisplay also remains empty, so no student/admin links are shown.
+
+
   const isAdminPortal = loggedIn && userRole === 'polytechnic';
 
 
@@ -85,7 +99,7 @@ export default function Header() {
         </Link>
         
         <nav className="hidden md:flex items-center space-x-4 text-sm font-medium">
-          {currentNavLinks.map((link) => (
+          {navLinksToDisplay.map((link) => (
             <Link
               key={link.label}
               href={link.href}
@@ -114,12 +128,12 @@ export default function Header() {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{userName}</p>
-                    {polytechnicName && userRole !== 'polytechnic' && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
+                    {polytechnicName && userRole === 'student' && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
                     {isAdminPortal && <p className="text-xs leading-none text-muted-foreground">Admin Portal</p>}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {!isAdminPortal && (
+                {!isAdminPortal && userRole === 'student' && ( // Show profile only for students if not in admin portal
                   <DropdownMenuItem onClick={() => router.push('/portfolio')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
@@ -160,7 +174,7 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <nav className="flex flex-col space-y-4 mt-8">
-                {currentNavLinks.map((link) => (
+                {navLinksToDisplay.map((link) => (
                   <Link
                     key={link.label} 
                     href={link.href}
