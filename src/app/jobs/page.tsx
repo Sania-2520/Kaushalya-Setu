@@ -1,19 +1,22 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { BriefcaseBusiness, Building, MapPin, Search, PlusCircle, SlidersHorizontal, Zap } from "lucide-react";
+import { BriefcaseBusiness, Building, MapPin, Search, PlusCircle, SlidersHorizontal, Zap, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 import { recommendOpportunities, RecommendOpportunitiesInput, RecommendOpportunitiesOutput } from '@/ai/flows/smart-recommendation-engine';
 import { useToast } from "@/hooks/use-toast";
+import { db } from '@/lib/firebase';
+import { collection, getDocs, addDoc, Timestamp, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import Link from 'next/link';
 
 interface Job {
   id: string;
@@ -21,10 +24,10 @@ interface Job {
   company: string;
   companyLogo?: string;
   location: string;
-  type: "Internship" | "Full-time" | "Part-time";
+  type: "Internship" | "Full-time" | "Part-time" | string; // Allow string for dynamic values
   description: string;
   skillsRequired: string[];
-  postedDate: Date;
+  postedDate: Date; // Will be converted from Firestore Timestamp
   salary?: string;
 }
 
@@ -32,67 +35,57 @@ interface RecommendedJob extends Job {
   relevanceScore: number;
 }
 
-const initialJobs: Job[] = [
-  {
-    id: "1",
-    title: "Frontend Developer Intern",
-    company: "Tech Solutions Inc.",
-    companyLogo: "https://placehold.co/100x100.png?text=TSI",
-    location: "Bengaluru, Karnataka",
-    type: "Internship",
-    description: "Join our dynamic team to work on exciting frontend projects using modern JavaScript frameworks. Learn from experienced developers and contribute to real-world applications.",
-    skillsRequired: ["HTML", "CSS", "JavaScript", "React", "Git"],
-    postedDate: new Date(2024, 6, 15),
-    salary: "₹15,000 - ₹25,000/month"
-  },
-  {
-    id: "2",
-    title: "Junior Software Engineer",
-    company: "Innovate Hub",
-    companyLogo: "https://placehold.co/100x100.png?text=IH",
-    location: "Mysuru, Karnataka",
-    type: "Full-time",
-    description: "We are looking for a passionate Junior Software Engineer to design, develop, and maintain software solutions. This is a great opportunity for growth and learning.",
-    skillsRequired: ["Java", "Spring Boot", "SQL", "Problem Solving"],
-    postedDate: new Date(2024, 6, 10),
-    salary: "₹4.5 LPA - ₹6 LPA"
-  },
-  {
-    id: "3",
-    title: "Graphic Design Intern",
-    company: "Creative Minds Agency",
-    location: "Hubballi, Karnataka",
-    type: "Internship",
-    description: "Assist our design team in creating compelling visuals for various clients. Must have a strong portfolio and proficiency in Adobe Creative Suite.",
-    skillsRequired: ["Adobe Photoshop", "Adobe Illustrator", "Creativity", "Communication"],
-    postedDate: new Date(2024, 6, 20),
-  },
-];
-
-// Dummy student data for recommendations
+// Dummy student data for recommendations - keep this for now as AI feature is separate
 const dummyStudentProfile = {
   skills: ["React", "Node.js", "JavaScript", "HTML", "CSS", "Flutter"],
   portfolio: "Developed a full-stack e-commerce website and a mobile weather app.",
   desiredJobType: "Internship"
 };
 
-const ALL_TYPES_FILTER_VALUE = "ALL_TYPES_FILTER_VALUE";
+const ALL_FILTER_VALUE = "ALL_FILTER_VALUE"; // For all dropdowns
 
 export default function JobsPage() {
-  const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const [isPostJobDialogOpen, setIsPostJobDialogOpen] = useState(false);
-  const [newJob, setNewJob] = useState<Partial<Job>>({ skillsRequired: [] });
+  const [newJob, setNewJob] = useState<Partial<Omit<Job, 'postedDate' | 'id'> & {postedDate?: Timestamp}>>({ skillsRequired: [] });
+  
   const [searchTerm, setSearchTerm] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
-  const [jobTypeFilter, setJobTypeFilter] = useState(""); // Initial empty string shows placeholder
+  const [titleFilter, setTitleFilter] = useState(ALL_FILTER_VALUE);
+  const [locationFilter, setLocationFilter] = useState(ALL_FILTER_VALUE);
+  const [jobTypeFilter, setJobTypeFilter] = useState(ALL_FILTER_VALUE);
 
   const { toast } = useToast();
 
   useEffect(() => {
+    const fetchJobs = async () => {
+      setIsLoadingJobs(true);
+      try {
+        const jobsCollection = collection(db, 'jobs');
+        const q = query(jobsCollection, orderBy('postedDate', 'desc'));
+        const jobSnapshot = await getDocs(q);
+        const jobList = jobSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            postedDate: (data.postedDate as Timestamp)?.toDate ? (data.postedDate as Timestamp).toDate() : new Date(),
+          } as Job;
+        });
+        setJobs(jobList);
+      } catch (error) {
+        console.error("Error fetching jobs:", error);
+        toast({ title: "Error", description: "Could not fetch jobs from database.", variant: "destructive" });
+      } finally {
+        setIsLoadingJobs(false);
+      }
+    };
+
+    fetchJobs();
     fetchRecommendations();
-  }, []);
+  }, [toast]);
 
   const fetchRecommendations = async () => {
     setIsLoadingRecommendations(true);
@@ -102,16 +95,17 @@ export default function JobsPage() {
         portfolioContent: dummyStudentProfile.portfolio,
         desiredJobType: dummyStudentProfile.desiredJobType,
       };
+      // This is a dummy call, as real recommendations would depend on actual job listings
+      // For now, we'll use the existing logic that might not perfectly map to Firestore jobs
       const output: RecommendOpportunitiesOutput = await recommendOpportunities(input);
-      // Map AI output to our Job structure, assuming some fields might not be present in AI response
       const mappedRecommendations: RecommendedJob[] = output.recommendations.map((rec, index) => ({
         id: `rec-${index}-${Date.now()}`,
         title: rec.jobTitle,
         company: rec.companyName,
-        location: "Karnataka (Suggested)", // Placeholder as AI might not give exact location
-        type: dummyStudentProfile.desiredJobType as "Internship" | "Full-time" | "Part-time",
+        location: "Karnataka (Suggested)", 
+        type: dummyStudentProfile.desiredJobType as Job["type"],
         description: rec.description,
-        skillsRequired: dummyStudentProfile.skills.filter(skill => rec.description.toLowerCase().includes(skill.toLowerCase())), // Basic skill match
+        skillsRequired: dummyStudentProfile.skills.filter(skill => rec.description.toLowerCase().includes(skill.toLowerCase())),
         postedDate: new Date(),
         relevanceScore: rec.relevanceScore,
         companyLogo: `https://placehold.co/100x100.png?text=${rec.companyName.substring(0,2).toUpperCase()}`,
@@ -131,7 +125,7 @@ export default function JobsPage() {
   };
 
   const handlePostJobSelectChange = (name: string, value: string) => {
-    setNewJob(prev => ({ ...prev, [name]: value }));
+    setNewJob(prev => ({ ...prev, [name]: value as Job["type"] }));
   };
   
   const handleAddSkillToJob = (skill: string) => {
@@ -144,38 +138,58 @@ export default function JobsPage() {
     setNewJob(prev => ({ ...prev, skillsRequired: prev.skillsRequired?.filter(skill => skill !== skillToRemove) }));
   };
 
-  const handlePostJobSubmit = () => {
+  const handlePostJobSubmit = async () => {
     if (!newJob.title || !newJob.company || !newJob.location || !newJob.type || !newJob.description) {
        toast({ title: "Error", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
-    const jobToPost: Job = {
-      id: Date.now().toString(),
-      title: newJob.title!,
-      company: newJob.company!,
-      location: newJob.location!,
-      type: newJob.type as "Internship" | "Full-time" | "Part-time",
-      description: newJob.description!,
-      skillsRequired: newJob.skillsRequired || [],
-      postedDate: new Date(),
-      companyLogo: newJob.companyLogo || `https://placehold.co/100x100.png?text=${newJob.company!.substring(0,2).toUpperCase()}`,
-      salary: newJob.salary
-    };
-    setJobs([jobToPost, ...jobs]);
-    toast({ title: "Job Posted", description: `"${jobToPost.title}" has been successfully posted.` });
-    setIsPostJobDialogOpen(false);
-    setNewJob({ skillsRequired: [] });
+    try {
+      const jobToPost = {
+        ...newJob,
+        postedDate: serverTimestamp(), // Use server timestamp for consistency
+        companyLogo: newJob.companyLogo || `https://placehold.co/100x100.png?text=${newJob.company!.substring(0,2).toUpperCase()}`,
+      };
+      const docRef = await addDoc(collection(db, 'jobs'), jobToPost);
+      
+      // Add to local state for immediate UI update
+      setJobs(prevJobs => [{
+        id: docRef.id,
+        title: newJob.title!,
+        company: newJob.company!,
+        location: newJob.location!,
+        type: newJob.type as Job["type"],
+        description: newJob.description!,
+        skillsRequired: newJob.skillsRequired || [],
+        postedDate: new Date(), // Optimistic update, Firestore will have server timestamp
+        companyLogo: jobToPost.companyLogo,
+        salary: newJob.salary
+      }, ...prevJobs]);
+
+      toast({ title: "Job Posted", description: `"${newJob.title}" has been successfully posted.` });
+      setIsPostJobDialogOpen(false);
+      setNewJob({ skillsRequired: [] });
+    } catch (error) {
+      console.error("Error posting job:", error);
+      toast({ title: "Error", description: "Could not post job. Please try again.", variant: "destructive" });
+    }
   };
   
-  const filteredJobs = jobs.filter(job => {
-    const titleMatch = job.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const locationMatch = locationFilter === "" || job.location.toLowerCase().includes(locationFilter.toLowerCase());
-    
-    const showAllJobTypes = jobTypeFilter === "" || jobTypeFilter === ALL_TYPES_FILTER_VALUE;
-    const jobTypeMatch = showAllJobTypes || job.type === jobTypeFilter;
+  const uniqueTitles = useMemo(() => Array.from(new Set(jobs.map(job => job.title))), [jobs]);
+  const uniqueLocations = useMemo(() => Array.from(new Set(jobs.map(job => job.location))), [jobs]);
+  const uniqueJobTypes = useMemo(() => Array.from(new Set(jobs.map(job => job.type))), [jobs]);
 
-    return titleMatch && locationMatch && jobTypeMatch;
-  });
+  const filteredJobs = useMemo(() => jobs.filter(job => {
+    const searchTermMatch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           job.skillsRequired.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const titleMatch = titleFilter === ALL_FILTER_VALUE || job.title === titleFilter;
+    const locationMatch = locationFilter === ALL_FILTER_VALUE || job.location === locationFilter;
+    const jobTypeMatch = jobTypeFilter === ALL_FILTER_VALUE || job.type === jobTypeFilter;
+
+    return searchTermMatch && titleMatch && locationMatch && jobTypeMatch;
+  }), [jobs, searchTerm, titleFilter, locationFilter, jobTypeFilter]);
 
   return (
     <div className="space-y-8">
@@ -186,16 +200,15 @@ export default function JobsPage() {
         </Button>
       </div>
 
-      {/* Filters Section */}
       <Card>
-        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div className="md:col-span-2">
-            <Label htmlFor="search">Search Jobs</Label>
+        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+          <div className="md:col-span-4 lg:col-span-1">
+            <Label htmlFor="search">Search Keywords</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input 
                 id="search" 
-                placeholder="Job title, keywords..." 
+                placeholder="Job title, company, skill..." 
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -203,35 +216,38 @@ export default function JobsPage() {
             </div>
           </div>
           <div>
-            <Label htmlFor="location">Location</Label>
-            <Input 
-              id="location" 
-              placeholder="e.g., Bengaluru" 
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="jobType">Job Type</Label>
-            <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
-              <SelectTrigger id="jobType">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
+            <Label htmlFor="titleFilter">Job Title</Label>
+            <Select value={titleFilter} onValueChange={setTitleFilter}>
+              <SelectTrigger id="titleFilter"><SelectValue placeholder="All Titles" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_TYPES_FILTER_VALUE}>All Types</SelectItem>
-                <SelectItem value="Internship">Internship</SelectItem>
-                <SelectItem value="Full-time">Full-time</SelectItem>
-                <SelectItem value="Part-time">Part-time</SelectItem>
+                <SelectItem value={ALL_FILTER_VALUE}>All Titles</SelectItem>
+                {uniqueTitles.map(title => <SelectItem key={title} value={title}>{title}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          {/* <Button className="md:mt-6">
-            <SlidersHorizontal className="mr-2 h-4 w-4" /> Apply Filters
-          </Button> */}
+          <div>
+            <Label htmlFor="locationFilter">Location</Label>
+            <Select value={locationFilter} onValueChange={setLocationFilter}>
+              <SelectTrigger id="locationFilter"><SelectValue placeholder="All Locations" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_FILTER_VALUE}>All Locations</SelectItem>
+                {uniqueLocations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="jobTypeFilter">Job Type</Label>
+            <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
+              <SelectTrigger id="jobTypeFilter"><SelectValue placeholder="All Types" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_FILTER_VALUE}>All Types</SelectItem>
+                {uniqueJobTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Recommended Jobs Section */}
       {dummyStudentProfile && (
         <section className="space-y-4">
           <div className="flex items-center gap-2">
@@ -240,16 +256,7 @@ export default function JobsPage() {
           </div>
           {isLoadingRecommendations ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1,2,3].map(i => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader><div className="h-6 bg-muted rounded w-3/4"></div></CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="h-4 bg-muted rounded w-full"></div>
-                    <div className="h-4 bg-muted rounded w-5/6"></div>
-                  </CardContent>
-                  <CardFooter><div className="h-8 bg-muted rounded w-1/4"></div></CardFooter>
-                </Card>
-              ))}
+              {[1,2,3].map(i => <JobCardSkeleton key={i} />)}
             </div>
           ) : recommendedJobs.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -261,14 +268,17 @@ export default function JobsPage() {
         </section>
       )}
       
-      {/* All Jobs Section */}
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold font-headline">All Job Listings ({filteredJobs.length})</h2>
-        {filteredJobs.length === 0 ? (
+        {isLoadingJobs ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1,2,3,4,5,6].map(i => <JobCardSkeleton key={i} />)}
+            </div>
+        ) : filteredJobs.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent className="flex flex-col items-center space-y-4">
               <BriefcaseBusiness className="h-16 w-16 text-muted-foreground" />
-              <p className="text-muted-foreground font-body">No jobs match your current filters. Try adjusting your search!</p>
+              <p className="text-muted-foreground font-body">No jobs match your current filters. Try adjusting your search or check back later!</p>
             </CardContent>
           </Card>
         ) : (
@@ -278,14 +288,11 @@ export default function JobsPage() {
         )}
       </section>
 
-      {/* Post Job Dialog */}
       <Dialog open={isPostJobDialogOpen} onOpenChange={setIsPostJobDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="font-headline">Post a New Job / Internship</DialogTitle>
-            <DialogDescription>
-              Fill in the details below to find the perfect candidate.
-            </DialogDescription>
+            <DialogDescription>Fill in the details below to find the perfect candidate.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -297,15 +304,13 @@ export default function JobsPage() {
               <Input id="companyName" name="company" value={newJob.company || ""} onChange={handlePostJobInputChange} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="location" className="text-right">Location</Label>
-              <Input id="location" name="location" value={newJob.location || ""} onChange={handlePostJobInputChange} className="col-span-3" placeholder="e.g., Bengaluru, Karnataka" />
+              <Label htmlFor="jobLocation" className="text-right">Location</Label>
+              <Input id="jobLocation" name="location" value={newJob.location || ""} onChange={handlePostJobInputChange} className="col-span-3" placeholder="e.g., Bengaluru, Karnataka" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="jobTypePost" className="text-right">Job Type</Label>
-              <Select name="type" onValueChange={(value) => handlePostJobSelectChange("type", value)}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select job type" />
-                </SelectTrigger>
+              <Select name="type" onValueChange={(value) => handlePostJobSelectChange("type", value)} value={newJob.type || undefined}>
+                <SelectTrigger className="col-span-3"><SelectValue placeholder="Select job type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Internship">Internship</SelectItem>
                   <SelectItem value="Full-time">Full-time</SelectItem>
@@ -327,7 +332,7 @@ export default function JobsPage() {
                 <div className="flex items-center gap-2">
                     <Input 
                         type="text" 
-                        placeholder="Add required skill" 
+                        placeholder="Add required skill and press Enter" 
                         className="text-sm h-8"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && e.currentTarget.value.trim()) {
@@ -359,21 +364,20 @@ export default function JobsPage() {
   );
 }
 
-// Job Card Component
 interface JobCardProps {
   job: Job | RecommendedJob;
   isRecommended?: boolean;
 }
 
 function JobCard({ job, isRecommended }: JobCardProps) {
-  const { title, company, companyLogo, location, type, description, skillsRequired, postedDate, salary } = job;
+  const { id, title, company, companyLogo, location, type, description, skillsRequired, postedDate, salary } = job;
   const relevanceScore = (job as RecommendedJob).relevanceScore;
 
   return (
     <Card className="flex flex-col overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4">
         {companyLogo ? (
-          <Image src={companyLogo} alt={`${company} logo`} width={48} height={48} className="rounded-md border" data-ai-hint="company logo" />
+          <Image src={companyLogo} alt={`${company} logo`} width={48} height={48} className="rounded-md border object-contain" data-ai-hint="company logo"/>
         ) : (
           <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center">
             <Building className="h-6 w-6 text-muted-foreground" />
@@ -409,11 +413,41 @@ function JobCard({ job, isRecommended }: JobCardProps) {
       </CardContent>
       <CardFooter className="p-4 border-t flex justify-between items-center">
         <p className="text-xs text-muted-foreground">
-          Posted: {postedDate.toLocaleDateString()}
+          Posted: {postedDate instanceof Date ? postedDate.toLocaleDateString() : 'N/A'}
         </p>
-        <Button size="sm" variant="default">Apply Now</Button>
+        <Button size="sm" variant="default" asChild>
+          <Link href={`/jobs/${id}/apply`}>Apply Now</Link>
+        </Button>
       </CardFooter>
     </Card>
   );
 }
 
+function JobCardSkeleton() {
+  return (
+    <Card className="animate-pulse">
+      <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4">
+        <div className="h-12 w-12 bg-muted rounded-md"></div>
+        <div className="flex-1 space-y-2">
+          <div className="h-5 bg-muted rounded w-3/4"></div>
+          <div className="h-4 bg-muted rounded w-1/2"></div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 pt-0 space-y-3">
+        <div className="h-3 bg-muted rounded w-1/3"></div>
+        <div className="h-3 bg-muted rounded w-1/4"></div>
+        <div className="h-10 bg-muted rounded w-full"></div>
+        <div className="h-3 bg-muted rounded w-1/4 mb-1"></div>
+        <div className="flex flex-wrap gap-1">
+          <div className="h-5 w-12 bg-muted rounded-full"></div>
+          <div className="h-5 w-16 bg-muted rounded-full"></div>
+          <div className="h-5 w-10 bg-muted rounded-full"></div>
+        </div>
+      </CardContent>
+      <CardFooter className="p-4 border-t flex justify-between items-center">
+        <div className="h-4 bg-muted rounded w-1/4"></div>
+        <div className="h-8 w-24 bg-muted rounded"></div>
+      </CardFooter>
+    </Card>
+  );
+}
