@@ -1,4 +1,5 @@
-// use server'
+
+'use server';
 
 /**
  * @fileOverview Implements the smart recommendation engine flow to match students with relevant internship and job opportunities.
