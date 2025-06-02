@@ -10,14 +10,24 @@ import { LogIn } from "lucide-react";
 import Link from "next/link";
 import Logo from "@/components/shared/logo";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleLogin = () => {
     // Simulate form validation and successful login
     // In a real app, you'd verify credentials here.
+
+    if (isClient) {
+      localStorage.setItem('isLoggedIn', 'true');
+    }
 
     toast({
       title: "Login Successful!",

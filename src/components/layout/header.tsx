@@ -1,11 +1,15 @@
+
 "use client";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, BookOpen, Users, MessageSquare, UserCircle, LogIn } from 'lucide-react';
+import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon } from 'lucide-react';
 import Logo from '@/components/shared/logo';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navLinks = [
   { href: '/', label: 'Home', icon: <BookOpen className="h-5 w-5" /> },
@@ -16,6 +20,28 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      const userLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      setLoggedIn(userLoggedIn);
+    }
+  }, [pathname, isClient]);
+
+  const handleLogout = () => {
+    if (isClient) {
+      localStorage.removeItem('isLoggedIn');
+      setLoggedIn(false);
+      router.push('/login');
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -43,16 +69,53 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" asChild className="hidden sm:flex">
-            <Link href="/login">
-              <LogIn className="mr-2 h-4 w-4" /> Login
-            </Link>
-          </Button>
-          <Button size="sm" asChild className="hidden sm:flex">
-            <Link href="/signup">
-              Sign Up
-            </Link>
-          </Button>
+          {loggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src="https://placehold.co/40x40.png?text=U" alt="User Avatar" data-ai-hint="user avatar" />
+                    <AvatarFallback>U</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">My Account</p>
+                    {/* <p className="text-xs leading-none text-muted-foreground">user@example.com</p> */}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/portfolio')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/account-settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOutIcon className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" asChild className="hidden sm:flex">
+                <Link href="/login">
+                  <LogIn className="mr-2 h-4 w-4" /> Login
+                </Link>
+              </Button>
+              <Button size="sm" asChild className="hidden sm:flex">
+                <Link href="/signup">
+                  Sign Up
+                </Link>
+              </Button>
+            </>
+          )}
 
           <Sheet>
             <SheetTrigger asChild>
@@ -77,16 +140,25 @@ export default function Header() {
                   </Link>
                 ))}
                 <div className="pt-4 border-t">
-                  <Button variant="outline" asChild className="w-full justify-start mb-2">
-                     <Link href="/login">
-                        <LogIn className="mr-2 h-4 w-4" /> Login
-                     </Link>
-                  </Button>
-                  <Button asChild className="w-full justify-start">
-                    <Link href="/signup">
-                       Sign Up
-                    </Link>
-                  </Button>
+                  {!loggedIn && (
+                    <>
+                      <Button variant="outline" asChild className="w-full justify-start mb-2">
+                         <Link href="/login">
+                            <LogIn className="mr-2 h-4 w-4" /> Login
+                         </Link>
+                      </Button>
+                      <Button asChild className="w-full justify-start">
+                        <Link href="/signup">
+                           Sign Up
+                        </Link>
+                      </Button>
+                    </>
+                  )}
+                   {loggedIn && (
+                     <Button onClick={handleLogout} variant="outline" className="w-full justify-start">
+                        <LogOutIcon className="mr-2 h-4 w-4" /> Log out
+                     </Button>
+                   )}
                 </div>
               </nav>
             </SheetContent>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,10 +17,13 @@ export default function SignupPage() {
   const [selectedRole, setSelectedRole] = useState<string>("");
   const router = useRouter();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSignup = () => {
-    // Simulate form validation (name, email, password inputs are not currently controlled)
-    // For this example, we'll just check if a role is selected.
     if (!selectedRole) {
       toast({
         title: "Role not selected",
@@ -30,13 +33,15 @@ export default function SignupPage() {
       return;
     }
 
-    // Simulate successful signup
+    if (isClient) {
+      localStorage.setItem('isLoggedIn', 'true');
+    }
+
     toast({
       title: "Signup Successful!",
       description: `Welcome! Redirecting you to the ${selectedRole} portal...`,
     });
 
-    // Redirect based on selected role
     if (selectedRole === "student") {
       router.push("/portfolio");
     } else if (selectedRole === "industry") {
@@ -44,7 +49,6 @@ export default function SignupPage() {
     } else if (selectedRole === "polytechnic") {
       router.push("/admin-dashboard");
     } else {
-      // Fallback or error if role is somehow not one of the expected
       router.push("/");
     }
   };
