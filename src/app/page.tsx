@@ -13,7 +13,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis } from "recharts"; // Removed CartesianGrid, Tooltip as RechartsTooltip to match original if not used
+import { BarChart, Bar, XAxis, YAxis } from "recharts"; // Removed CartesianGrid
 import { useEffect, useState } from 'react';
 
 
@@ -164,14 +164,14 @@ export default function HomePage() {
               <CardHeader>
                 <CardTitle className="font-headline flex items-center">
                     <TrendingUp className="mr-2 h-6 w-6 text-primary"/>
-                    Sample Weekly Activity
+                    Daily Progress (Sample for this Week)
                 </CardTitle>
-                <CardDescription>Tasks completed and hours studied this week (sample data).</CardDescription>
+                <CardDescription>Overview of tasks completed and study hours on a daily basis for the current week (sample data).</CardDescription>
               </CardHeader>
               <CardContent className="h-[350px] w-full">
                 <ChartContainer config={chartConfig} className="w-full h-full">
                   <BarChart accessibilityLayer data={weeklyProgressData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                    {/* <CartesianGrid vertical={false} strokeDasharray="3 3" /> Removed as per original if not used explicitly */}
+                    {/* <CartesianGrid vertical={false} strokeDasharray="3 3" /> */}
                     <XAxis
                       dataKey="day"
                       tickLine={false}
@@ -252,4 +252,3 @@ export default function HomePage() {
   );
 }
 
-    
