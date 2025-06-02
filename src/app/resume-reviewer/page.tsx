@@ -3,24 +3,24 @@
 
 import { useState, ChangeEvent } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { UploadCloud, Loader2, FileText, Sparkles, AlertCircle } from "lucide-react";
+import { UploadCloud, Loader2, FileText, Sparkles, AlertCircle, Download } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getResumeFeedback, ResumeFeedbackInput, ResumeFeedbackOutput } from '@/ai/flows/resume-feedback-flow';
+import { Badge } from '@/components/ui/badge';
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-const ACCEPTED_FILE_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']; // PDF and DOCX
+const ACCEPTED_FILE_TYPES = ['application/pdf'];
 
 export default function ResumeReviewerPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [score, setScore] = useState<number | null>(null);
+  const [feedbackResult, setFeedbackResult] = useState<ResumeFeedbackOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -35,24 +35,23 @@ export default function ResumeReviewerPage() {
         });
         setSelectedFileName(null);
         setResumeFile(null);
-        event.target.value = ""; // Clear the input
+        event.target.value = ""; 
         return;
       }
       if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
          toast({
           title: "Invalid File Type",
-          description: "Please upload a PDF or DOCX file.",
+          description: "Please upload a PDF file.",
           variant: "destructive",
         });
         setSelectedFileName(null);
         setResumeFile(null);
-        event.target.value = ""; // Clear the input
+        event.target.value = "";
         return;
       }
       setResumeFile(file);
       setSelectedFileName(file.name);
-      setFeedback(null); // Clear previous feedback
-      setScore(null); // Clear previous score
+      setFeedbackResult(null); 
     }
   };
 
@@ -62,8 +61,7 @@ export default function ResumeReviewerPage() {
       return;
     }
     setIsLoading(true);
-    setFeedback(null);
-    setScore(null);
+    setFeedbackResult(null);
 
     try {
       const reader = new FileReader();
@@ -74,8 +72,7 @@ export default function ResumeReviewerPage() {
         const result: ResumeFeedbackOutput = await getResumeFeedback(input);
         
         if (result && result.feedback) {
-          setFeedback(result.feedback);
-          setScore(result.score);
+          setFeedbackResult(result);
           toast({ title: "Analysis Complete!", description: "Your resume feedback is ready." });
         } else {
           throw new Error("AI did not return valid feedback.");
@@ -94,36 +91,56 @@ export default function ResumeReviewerPage() {
     }
   };
 
+  const getScoreColor = (score: number): "bg-green-500" | "bg-yellow-500" | "bg-red-500" | "bg-primary" => {
+    if (score >= 80) return "bg-green-500";
+    if (score >= 60) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+
   return (
     <div className="space-y-8">
-      <div className="flex flex-col items-center text-center">
-        <Sparkles className="h-16 w-16 text-primary mb-4" />
-        <h1 className="text-4xl font-bold tracking-tight font-headline text-primary">
-          AI Resume Analyzer
-        </h1>
-        <p className="mt-3 max-w-2xl text-lg text-foreground/80 font-body">
-          Upload your resume (PDF or DOCX, max {MAX_FILE_SIZE_MB}MB) and let our intelligent analyzer review it for structure, skills, keywords, and completeness.
-          You'll receive a score out of 100 along with personalized feedback to improve your resume for internships and job applications.
-        </p>
-      </div>
+      <Card className="shadow-lg">
+        <CardHeader>
+            <div className="flex items-center gap-3 mb-2">
+                 <Sparkles className="h-10 w-10 text-primary" />
+                <div>
+                    <CardTitle className="text-2xl md:text-3xl font-bold font-headline">📄 Resume Reviewer</CardTitle>
+                    <CardDescription className="mt-1 text-sm md:text-base">
+                        Improve your resume with AI! Upload your resume and let our intelligent analyzer review it for structure, skills, keywords, and completeness. 
+                        You'll receive a score out of 100 along with personalized feedback to improve your resume for internships and job applications.
+                    </CardDescription>
+                </div>
+            </div>
+        </CardHeader>
+        <CardContent>
+            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground mb-4">
+                <li>Missing sections (like projects, skills, achievements)</li>
+                <li>Keyword density (relevant tech skills, action verbs)</li>
+                <li>Resume structure and formatting</li>
+                <li>Role alignment and clarity</li>
+            </ul>
+            <p className="text-sm font-semibold text-primary">
+                🔍 Just upload your resume and get instant insights — faster than a career counselor!
+            </p>
+        </CardContent>
+      </Card>
 
       <Card className="max-w-2xl mx-auto shadow-xl">
         <CardHeader>
           <CardTitle className="font-headline">Upload Your Resume</CardTitle>
           <CardDescription>
-            Our tool checks for missing sections, highlights relevant tech keywords, and suggests powerful improvements. 
-            Get instant insights — faster than a career counselor!
+            Provide your resume in PDF format (max {MAX_FILE_SIZE_MB}MB).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="resumeUpload">Resume File (PDF or DOCX, Max {MAX_FILE_SIZE_MB}MB)</Label>
+            <Label htmlFor="resumeUploadAnalyzer">Resume File (PDF only, Max {MAX_FILE_SIZE_MB}MB)</Label>
             <div className="flex items-center space-x-2">
-                <Button type="button" variant="outline" className="w-full justify-start font-normal" onClick={() => document.getElementById('resume-input-analyzer')?.click()}>
+                <Button type="button" variant="outline" className="w-full justify-start font-normal" onClick={() => document.getElementById('resume-input-analyzer-page')?.click()}>
                     <UploadCloud className="mr-2 h-4 w-4" />
                     {selectedFileName || "Choose your resume file..."}
                 </Button>
-                <Input id="resume-input-analyzer" type="file" accept=".pdf,.docx" onChange={handleFileChange} className="hidden" />
+                <Input id="resume-input-analyzer-page" type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
             </div>
           </div>
           <Button onClick={handleAnalyzeResume} disabled={isLoading || !resumeFile} className="w-full">
@@ -140,7 +157,7 @@ export default function ResumeReviewerPage() {
         </div>
       )}
 
-      {score !== null && feedback && !isLoading && (
+      {feedbackResult && !isLoading && (
         <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="font-headline text-2xl">Your Resume Analysis</CardTitle>
@@ -149,19 +166,66 @@ export default function ResumeReviewerPage() {
             <div>
               <h3 className="text-xl font-semibold mb-2">Overall Score:</h3>
               <div className="flex items-center space-x-3">
-                <Progress value={score} className="w-full h-4" />
-                <span className="text-2xl font-bold text-primary">{score}/100</span>
+                <Progress value={feedbackResult.score} className={`w-full h-4 [&>div]:${getScoreColor(feedbackResult.score)}`} />
+                <Badge className={`text-lg px-3 py-1 ${getScoreColor(feedbackResult.score)} text-white`}>{feedbackResult.score}/100</Badge>
               </div>
             </div>
+            
             <div>
               <h3 className="text-xl font-semibold mb-2">Detailed Feedback:</h3>
-              <Textarea value={feedback} readOnly className="min-h-[300px] bg-muted/30 text-sm font-mono leading-relaxed" />
+              <Textarea value={feedbackResult.feedback} readOnly className="min-h-[250px] bg-muted/30 text-sm font-mono leading-relaxed border-border" />
             </div>
-             <AlertCircle className="h-4 w-4 text-muted-foreground inline-block mr-1"/>
-             <span className="text-xs text-muted-foreground italic">
-                This AI-generated feedback is for guidance only. Always use your best judgment and consider seeking advice from career counselors.
-             </span>
+
+            {feedbackResult.missingSections && feedbackResult.missingSections.length > 0 && (
+                 <div>
+                    <h4 className="text-lg font-semibold mb-1">Missing Sections:</h4>
+                    <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
+                        {feedbackResult.missingSections.map(section => <li key={section}>{section}</li>)}
+                    </ul>
+                </div>
+            )}
+
+            {feedbackResult.keywordAnalysis && (
+                 <div>
+                    <h4 className="text-lg font-semibold mb-1">Keyword Analysis:</h4>
+                    {feedbackResult.keywordAnalysis.relevantKeywordsFound && feedbackResult.keywordAnalysis.relevantKeywordsFound.length > 0 && (
+                        <div className="mb-2">
+                            <p className="text-sm font-medium text-green-700">Relevant Keywords Found:</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {feedbackResult.keywordAnalysis.relevantKeywordsFound.map(kw => <Badge key={kw} variant="secondary" className="bg-green-100 text-green-800">{kw}</Badge>)}
+                            </div>
+                        </div>
+                    )}
+                    {feedbackResult.keywordAnalysis.suggestedKeywordsToAdd && feedbackResult.keywordAnalysis.suggestedKeywordsToAdd.length > 0 && (
+                         <div>
+                            <p className="text-sm font-medium text-blue-700">Suggested Keywords to Add:</p>
+                             <div className="flex flex-wrap gap-1 mt-1">
+                                {feedbackResult.keywordAnalysis.suggestedKeywordsToAdd.map(kw => <Badge key={kw} variant="outline" className="border-blue-300 text-blue-800">{kw}</Badge>)}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
           </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-3 border-t pt-4">
+            <div className="flex gap-2">
+              <Button variant="outline" disabled>
+                <Download className="mr-2 h-4 w-4" /> Download Report (PDF)
+              </Button>
+               <Button variant="secondary" onClick={() => {
+                 setResumeFile(null);
+                 setSelectedFileName(null);
+                 setFeedbackResult(null);
+                 const fileInput = document.getElementById('resume-input-analyzer-page') as HTMLInputElement;
+                 if(fileInput) fileInput.value = "";
+               }}>
+                <UploadCloud className="mr-2 h-4 w-4" /> Re-upload & Analyze New Resume
+              </Button>
+            </div>
+             <p className="text-xs text-muted-foreground italic flex items-center mt-2 sm:mt-0">
+                <AlertCircle className="h-3 w-3 mr-1"/> AI feedback is for guidance.
+             </p>
+          </CardFooter>
         </Card>
       )}
     </div>
