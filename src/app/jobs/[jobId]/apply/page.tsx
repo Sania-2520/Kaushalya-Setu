@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot } from 'firebase/storage';
-import { Briefcase, FileText, Loader2, User, Mail, Phone, Send } from 'lucide-react';
+import { Briefcase, FileText, Loader2, User, Mail, Phone, Send, UploadCloud } from 'lucide-react';
 import Link from 'next/link';
 
 const applicationSchema = z.object({
@@ -27,7 +27,9 @@ const applicationSchema = z.object({
   resume: z.custom<FileList>((val) => val instanceof FileList && val.length > 0, "Resume is required.")
     .refine((files) => files?.[0]?.size <= 5 * 1024 * 1024, `Resume size should be less than 5MB.`)
     .refine(
-      (files) => ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"].includes(files?.[0]?.type),
+      (files) => files?.[0]?.type === "application/pdf" || 
+                 files?.[0]?.type === "application/msword" || 
+                 files?.[0]?.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Only .pdf, .doc, .docx formats are supported."
     ),
 });
@@ -50,11 +52,21 @@ export default function ApplyPage() {
   const [isLoadingJob, setIsLoadingJob] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<ApplicationFormData>({
+
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm<ApplicationFormData>({
     resolver: zodResolver(applicationSchema),
   });
   const resumeFile = watch("resume");
+
+  useEffect(() => {
+    if (resumeFile && resumeFile.length > 0) {
+      setFileName(resumeFile[0].name);
+    } else {
+      setFileName(null);
+    }
+  }, [resumeFile]);
 
 
   useEffect(() => {
@@ -117,7 +129,8 @@ export default function ApplyPage() {
           
           const applicationData = {
             jobId: jobDetails.id,
-            jobTitle: jobDetails.title,
+            jobTitle: jobDetails.title, // Denormalized
+            companyName: jobDetails.company, // Denormalized
             applicantName: data.applicantName,
             applicantEmail: data.applicantEmail,
             applicantPhone: data.applicantPhone,
@@ -128,13 +141,13 @@ export default function ApplyPage() {
             status: "Submitted",
           };
 
-          await addDoc(collection(db, 'applications'), applicationData);
+          const docRef = await addDoc(collection(db, 'applications'), applicationData);
           
           toast({ title: "Application Submitted!", description: "Your application has been successfully submitted." });
           reset();
+          setFileName(null);
           setUploadProgress(null);
-          // Optionally redirect or show success message on page
-          router.push(`/jobs?applied=${jobDetails.id}`);
+          router.push(`/jobs/application-submitted?jobTitle=${encodeURIComponent(jobDetails.title)}&company=${encodeURIComponent(jobDetails.company)}`);
         }
       );
     } catch (error) {
@@ -142,8 +155,7 @@ export default function ApplyPage() {
       toast({ title: "Submission Error", description: "Could not submit application. Please try again.", variant: "destructive" });
       setIsSubmitting(false);
       setUploadProgress(null);
-    } 
-    // Not setting isSubmitting to false here because the uploadTask's completion/error will handle it
+    }
   };
 
   if (isLoadingJob) {
@@ -156,7 +168,7 @@ export default function ApplyPage() {
   }
 
   if (!jobDetails) {
-    return ( // Fallback if jobDetails somehow is null after loading checks (should be handled by redirect)
+    return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] text-center">
           <Briefcase className="h-16 w-16 text-destructive mb-4" />
           <h1 className="text-2xl font-bold mb-2">Job Not Found</h1>
@@ -170,8 +182,8 @@ export default function ApplyPage() {
     <div className="container mx-auto max-w-2xl py-8">
       <Card className="shadow-xl">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold font-headline text-primary">Apply for {jobDetails.title}</CardTitle>
-          <CardDescription>at {jobDetails.company}. Please fill out the form below.</CardDescription>
+          <CardTitle className="text-2xl font-bold font-headline text-primary">Apply for: {jobDetails.title}</CardTitle>
+          <CardDescription>Company: {jobDetails.company}<br/>Job ID: {jobDetails.id}</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
@@ -195,8 +207,20 @@ export default function ApplyPage() {
             
             <div className="space-y-2">
               <Label htmlFor="resume" className="flex items-center"><FileText className="mr-2 h-4 w-4 text-primary" />Resume (PDF, DOC, DOCX - Max 5MB)</Label>
-              <Input id="resume" type="file" {...register("resume")} accept=".pdf,.doc,.docx,.msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-              {errors.resume && <p className="text-sm text-destructive">{errors.resume.message as string}</p>}
+              <div className="flex items-center space-x-2">
+                <Button type="button" variant="outline" onClick={() => document.getElementById('resume-input')?.click()} className="w-auto">
+                    <UploadCloud className="mr-2 h-4 w-4" /> Choose File
+                </Button>
+                <Input 
+                    id="resume-input" // Hidden input
+                    type="file" 
+                    className="hidden"
+                    {...register("resume")} 
+                    accept=".pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                 />
+                 {fileName && <span className="text-sm text-muted-foreground truncate max-w-xs">{fileName}</span>}
+              </div>
+              {errors.resume && <p className="text-sm text-destructive mt-1">{errors.resume.message as string}</p>}
               {uploadProgress !== null && (
                 <div className="mt-2">
                   <Progress value={uploadProgress} className="w-full h-2" />
@@ -206,16 +230,16 @@ export default function ApplyPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="coverLetter" className="flex items-center"><Briefcase className="mr-2 h-4 w-4 text-primary" />Cover Letter / Why you are a good fit?</Label>
+              <Label htmlFor="coverLetter" className="flex items-center"><Briefcase className="mr-2 h-4 w-4 text-primary" />Cover Letter / About you</Label>
               <Textarea id="coverLetter" {...register("coverLetter")} placeholder="Tell us about yourself and why you're interested in this role..." className="min-h-[150px]" />
               {errors.coverLetter && <p className="text-sm text-destructive">{errors.coverLetter.message}</p>}
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" type="button" onClick={() => router.back()}>
+            <Button variant="outline" type="button" onClick={() => router.back()} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || uploadProgress !== null && uploadProgress < 100}>
+            <Button type="submit" disabled={isSubmitting || (uploadProgress !== null && uploadProgress < 100)}>
               {isSubmitting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

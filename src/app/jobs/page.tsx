@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,14 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { BriefcaseBusiness, Building, MapPin, Search, PlusCircle, SlidersHorizontal, Zap, Loader2 } from "lucide-react";
+import { BriefcaseBusiness, Building, MapPin, Search, PlusCircle, Filter, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
-import { recommendOpportunities, RecommendOpportunitiesInput, RecommendOpportunitiesOutput } from '@/ai/flows/smart-recommendation-engine';
 import { useToast } from "@/hooks/use-toast";
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, Timestamp, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, Timestamp, serverTimestamp, query, where, orderBy, Query } from 'firebase/firestore';
 import Link from 'next/link';
+import { JOB_TITLES, INDIAN_CITIES, IT_KEYWORDS, JOB_TYPES, ALL_FILTER_VALUE } from '@/lib/constants';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 interface Job {
   id: string;
@@ -24,100 +27,85 @@ interface Job {
   company: string;
   companyLogo?: string;
   location: string;
-  type: "Internship" | "Full-time" | "Part-time" | string; // Allow string for dynamic values
+  type: string;
   description: string;
-  skillsRequired: string[];
-  postedDate: Date; // Will be converted from Firestore Timestamp
+  skills: string[]; // Changed from skillsRequired for consistency with constants
+  postedDate: Date;
   salary?: string;
 }
-
-interface RecommendedJob extends Job {
-  relevanceScore: number;
-}
-
-// Dummy student data for recommendations - keep this for now as AI feature is separate
-const dummyStudentProfile = {
-  skills: ["React", "Node.js", "JavaScript", "HTML", "CSS", "Flutter"],
-  portfolio: "Developed a full-stack e-commerce website and a mobile weather app.",
-  desiredJobType: "Internship"
-};
-
-const ALL_FILTER_VALUE = "ALL_FILTER_VALUE"; // For all dropdowns
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
-  const [recommendedJobs, setRecommendedJobs] = useState<RecommendedJob[]>([]);
-  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const [isPostJobDialogOpen, setIsPostJobDialogOpen] = useState(false);
-  const [newJob, setNewJob] = useState<Partial<Omit<Job, 'postedDate' | 'id'> & {postedDate?: Timestamp}>>({ skillsRequired: [] });
+  const [newJob, setNewJob] = useState<Partial<Omit<Job, 'postedDate' | 'id' | 'skills'> & {postedDate?: Timestamp, skills?: string[]}>>({ skills: [] });
   
   const [searchTerm, setSearchTerm] = useState("");
-  const [titleFilter, setTitleFilter] = useState(ALL_FILTER_VALUE);
-  const [locationFilter, setLocationFilter] = useState(ALL_FILTER_VALUE);
-  const [jobTypeFilter, setJobTypeFilter] = useState(ALL_FILTER_VALUE);
+  const [selectedTitle, setSelectedTitle] = useState(ALL_FILTER_VALUE);
+  const [selectedLocation, setSelectedLocation] = useState(ALL_FILTER_VALUE);
+  const [selectedJobType, setSelectedJobType] = useState(ALL_FILTER_VALUE);
+  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchJobs = async () => {
-      setIsLoadingJobs(true);
-      try {
-        const jobsCollection = collection(db, 'jobs');
-        const q = query(jobsCollection, orderBy('postedDate', 'desc'));
-        const jobSnapshot = await getDocs(q);
-        const jobList = jobSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data,
-            postedDate: (data.postedDate as Timestamp)?.toDate ? (data.postedDate as Timestamp).toDate() : new Date(),
-          } as Job;
-        });
-        setJobs(jobList);
-      } catch (error) {
-        console.error("Error fetching jobs:", error);
-        toast({ title: "Error", description: "Could not fetch jobs from database.", variant: "destructive" });
-      } finally {
-        setIsLoadingJobs(false);
-      }
-    };
-
-    fetchJobs();
-    fetchRecommendations();
-  }, [toast]);
-
-  const fetchRecommendations = async () => {
-    setIsLoadingRecommendations(true);
+  const fetchJobs = useCallback(async () => {
+    setIsLoadingJobs(true);
     try {
-      const input: RecommendOpportunitiesInput = {
-        studentSkills: dummyStudentProfile.skills,
-        portfolioContent: dummyStudentProfile.portfolio,
-        desiredJobType: dummyStudentProfile.desiredJobType,
-      };
-      // This is a dummy call, as real recommendations would depend on actual job listings
-      // For now, we'll use the existing logic that might not perfectly map to Firestore jobs
-      const output: RecommendOpportunitiesOutput = await recommendOpportunities(input);
-      const mappedRecommendations: RecommendedJob[] = output.recommendations.map((rec, index) => ({
-        id: `rec-${index}-${Date.now()}`,
-        title: rec.jobTitle,
-        company: rec.companyName,
-        location: "Karnataka (Suggested)", 
-        type: dummyStudentProfile.desiredJobType as Job["type"],
-        description: rec.description,
-        skillsRequired: dummyStudentProfile.skills.filter(skill => rec.description.toLowerCase().includes(skill.toLowerCase())),
-        postedDate: new Date(),
-        relevanceScore: rec.relevanceScore,
-        companyLogo: `https://placehold.co/100x100.png?text=${rec.companyName.substring(0,2).toUpperCase()}`,
-      }));
-      setRecommendedJobs(mappedRecommendations);
+      let jobsQuery: Query = collection(db, 'jobs');
+
+      if (selectedTitle !== ALL_FILTER_VALUE) {
+        jobsQuery = query(jobsQuery, where("title", "==", selectedTitle));
+      }
+      if (selectedLocation !== ALL_FILTER_VALUE) {
+        jobsQuery = query(jobsQuery, where("location", "==", selectedLocation));
+      }
+      if (selectedJobType !== ALL_FILTER_VALUE) {
+        jobsQuery = query(jobsQuery, where("type", "==", selectedJobType));
+      }
+      
+      jobsQuery = query(jobsQuery, orderBy('postedDate', 'desc'));
+      
+      const jobSnapshot = await getDocs(jobsQuery);
+      let jobList = jobSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          skills: data.skills || [], // ensure skills is an array
+          postedDate: (data.postedDate as Timestamp)?.toDate ? (data.postedDate as Timestamp).toDate() : new Date(),
+        } as Job;
+      });
+
+      // Client-side filtering for keywords (must contain ALL selected keywords)
+      if (selectedKeywords.length > 0) {
+        jobList = jobList.filter(job =>
+          selectedKeywords.every(keyword => job.skills.includes(keyword))
+        );
+      }
+      
+      // Client-side filtering for search term (if any)
+      if (searchTerm.trim() !== "") {
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        jobList = jobList.filter(job => 
+            job.title.toLowerCase().includes(lowerSearchTerm) ||
+            job.company.toLowerCase().includes(lowerSearchTerm) ||
+            job.description.toLowerCase().includes(lowerSearchTerm) ||
+            job.skills.some(skill => skill.toLowerCase().includes(lowerSearchTerm))
+        );
+      }
+
+      setJobs(jobList);
     } catch (error) {
-      console.error("Failed to fetch recommendations:", error);
-      toast({ title: "Recommendation Error", description: "Could not fetch AI job recommendations.", variant: "destructive" });
+      console.error("Error fetching jobs:", error);
+      toast({ title: "Error", description: "Could not fetch jobs.", variant: "destructive" });
     } finally {
-      setIsLoadingRecommendations(false);
+      setIsLoadingJobs(false);
     }
-  };
+  }, [selectedTitle, selectedLocation, selectedJobType, selectedKeywords, searchTerm, toast]);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
 
   const handlePostJobInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -125,17 +113,17 @@ export default function JobsPage() {
   };
 
   const handlePostJobSelectChange = (name: string, value: string) => {
-    setNewJob(prev => ({ ...prev, [name]: value as Job["type"] }));
+    setNewJob(prev => ({ ...prev, [name]: value }));
   };
   
   const handleAddSkillToJob = (skill: string) => {
-    if (skill && !newJob.skillsRequired?.includes(skill)) {
-      setNewJob(prev => ({ ...prev, skillsRequired: [...(prev.skillsRequired || []), skill] }));
+    if (skill && !newJob.skills?.includes(skill)) {
+      setNewJob(prev => ({ ...prev, skills: [...(prev.skills || []), skill] }));
     }
   };
 
   const handleRemoveSkillFromJob = (skillToRemove: string) => {
-    setNewJob(prev => ({ ...prev, skillsRequired: prev.skillsRequired?.filter(skill => skill !== skillToRemove) }));
+    setNewJob(prev => ({ ...prev, skills: prev.skills?.filter(skill => skill !== skillToRemove) }));
   };
 
   const handlePostJobSubmit = async () => {
@@ -143,66 +131,59 @@ export default function JobsPage() {
        toast({ title: "Error", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
+    setIsLoadingJobs(true); // Use general loading state
     try {
       const jobToPost = {
         ...newJob,
-        postedDate: serverTimestamp(), // Use server timestamp for consistency
+        skills: newJob.skills || [],
+        postedDate: serverTimestamp(),
         companyLogo: newJob.companyLogo || `https://placehold.co/100x100.png?text=${newJob.company!.substring(0,2).toUpperCase()}`,
       };
       const docRef = await addDoc(collection(db, 'jobs'), jobToPost);
       
-      // Add to local state for immediate UI update
       setJobs(prevJobs => [{
         id: docRef.id,
-        title: newJob.title!,
-        company: newJob.company!,
-        location: newJob.location!,
-        type: newJob.type as Job["type"],
-        description: newJob.description!,
-        skillsRequired: newJob.skillsRequired || [],
-        postedDate: new Date(), // Optimistic update, Firestore will have server timestamp
+        ...newJob,
+        skills: newJob.skills || [],
+        postedDate: new Date(), 
         companyLogo: jobToPost.companyLogo,
-        salary: newJob.salary
-      }, ...prevJobs]);
+      } as Job, ...prevJobs]);
 
       toast({ title: "Job Posted", description: `"${newJob.title}" has been successfully posted.` });
       setIsPostJobDialogOpen(false);
-      setNewJob({ skillsRequired: [] });
+      setNewJob({ skills: [] });
+      fetchJobs(); // Refetch jobs to ensure filters are up-to-date if they were dynamic
     } catch (error) {
       console.error("Error posting job:", error);
       toast({ title: "Error", description: "Could not post job. Please try again.", variant: "destructive" });
+    } finally {
+      setIsLoadingJobs(false);
     }
   };
   
-  const uniqueTitles = useMemo(() => Array.from(new Set(jobs.map(job => job.title))), [jobs]);
-  const uniqueLocations = useMemo(() => Array.from(new Set(jobs.map(job => job.location))), [jobs]);
-  const uniqueJobTypes = useMemo(() => Array.from(new Set(jobs.map(job => job.type))), [jobs]);
-
-  const filteredJobs = useMemo(() => jobs.filter(job => {
-    const searchTermMatch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           job.skillsRequired.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const titleMatch = titleFilter === ALL_FILTER_VALUE || job.title === titleFilter;
-    const locationMatch = locationFilter === ALL_FILTER_VALUE || job.location === locationFilter;
-    const jobTypeMatch = jobTypeFilter === ALL_FILTER_VALUE || job.type === jobTypeFilter;
-
-    return searchTermMatch && titleMatch && locationMatch && jobTypeMatch;
-  }), [jobs, searchTerm, titleFilter, locationFilter, jobTypeFilter]);
+  const handleKeywordSelect = (keyword: string) => {
+    setSelectedKeywords(prev => 
+      prev.includes(keyword) 
+        ? prev.filter(k => k !== keyword) 
+        : [...prev, keyword]
+    );
+  };
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h1 className="text-3xl font-bold font-headline">Find Your Next Opportunity</h1>
         <Button onClick={() => setIsPostJobDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Post a Job (for Employers)
+          <PlusCircle className="mr-2 h-4 w-4" /> Post a Job
         </Button>
       </div>
 
       <Card>
+        <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center"><Filter className="mr-2 h-5 w-5"/>Filter Options</CardTitle>
+        </CardHeader>
         <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          <div className="md:col-span-4 lg:col-span-1">
+          <div>
             <Label htmlFor="search">Search Keywords</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -217,64 +198,70 @@ export default function JobsPage() {
           </div>
           <div>
             <Label htmlFor="titleFilter">Job Title</Label>
-            <Select value={titleFilter} onValueChange={setTitleFilter}>
+            <Select value={selectedTitle} onValueChange={setSelectedTitle}>
               <SelectTrigger id="titleFilter"><SelectValue placeholder="All Titles" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_FILTER_VALUE}>All Titles</SelectItem>
-                {uniqueTitles.map(title => <SelectItem key={title} value={title}>{title}</SelectItem>)}
+                {JOB_TITLES.map(title => <SelectItem key={title} value={title}>{title}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div>
             <Label htmlFor="locationFilter">Location</Label>
-            <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger id="locationFilter"><SelectValue placeholder="All Locations" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_FILTER_VALUE}>All Locations</SelectItem>
-                {uniqueLocations.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
+                {INDIAN_CITIES.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <div>
+           <div>
             <Label htmlFor="jobTypeFilter">Job Type</Label>
-            <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
+            <Select value={selectedJobType} onValueChange={setSelectedJobType}>
               <SelectTrigger id="jobTypeFilter"><SelectValue placeholder="All Types" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_FILTER_VALUE}>All Types</SelectItem>
-                {uniqueJobTypes.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                {JOB_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+          <div className="md:col-span-2 lg:col-span-4">
+            <Label htmlFor="keywordsFilter">Keywords/Skills</Label>
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                        {selectedKeywords.length > 0 ? `${selectedKeywords.length} skill(s) selected` : "Select skills..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[calc(100vw-2rem)] md:w-[300px] max-h-80 overflow-y-auto">
+                    <DropdownMenuLabel>Select Skills</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {/* Consider adding a search input here for long lists */}
+                    {IT_KEYWORDS.sort().map((keyword) => (
+                    <DropdownMenuCheckboxItem
+                        key={keyword}
+                        checked={selectedKeywords.includes(keyword)}
+                        onCheckedChange={() => handleKeywordSelect(keyword)}
+                        onSelect={(e) => e.preventDefault()} // prevent menu closing on item select
+                    >
+                        {keyword}
+                    </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </CardContent>
       </Card>
-
-      {dummyStudentProfile && (
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Zap className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-semibold font-headline">Recommended For You</h2>
-          </div>
-          {isLoadingRecommendations ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1,2,3].map(i => <JobCardSkeleton key={i} />)}
-            </div>
-          ) : recommendedJobs.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendedJobs.map(job => <JobCard key={job.id} job={job} isRecommended={true} />)}
-            </div>
-          ) : (
-            <p className="text-muted-foreground">No specific recommendations available right now. Explore all jobs below!</p>
-          )}
-        </section>
-      )}
       
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold font-headline">All Job Listings ({filteredJobs.length})</h2>
+        <h2 className="text-2xl font-semibold font-headline">Job Listings ({jobs.length})</h2>
         {isLoadingJobs ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1,2,3,4,5,6].map(i => <JobCardSkeleton key={i} />)}
             </div>
-        ) : filteredJobs.length === 0 ? (
+        ) : jobs.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent className="flex flex-col items-center space-y-4">
               <BriefcaseBusiness className="h-16 w-16 text-muted-foreground" />
@@ -283,7 +270,7 @@ export default function JobsPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredJobs.map(job => <JobCard key={job.id} job={job} />)}
+            {jobs.map(job => <JobCard key={job.id} job={job} />)}
           </div>
         )}
       </section>
@@ -296,25 +283,33 @@ export default function JobsPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="jobTitle" className="text-right">Job Title</Label>
-              <Input id="jobTitle" name="title" value={newJob.title || ""} onChange={handlePostJobInputChange} className="col-span-3" />
+              <Label htmlFor="jobTitlePost" className="text-right">Job Title</Label>
+              <Select name="title" onValueChange={(value) => handlePostJobSelectChange("title", value)} value={newJob.title || undefined}>
+                <SelectTrigger id="jobTitlePost" className="col-span-3"><SelectValue placeholder="Select job title" /></SelectTrigger>
+                <SelectContent>
+                  {JOB_TITLES.map(title => <SelectItem key={title} value={title}>{title}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="companyName" className="text-right">Company Name</Label>
               <Input id="companyName" name="company" value={newJob.company || ""} onChange={handlePostJobInputChange} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="jobLocation" className="text-right">Location</Label>
-              <Input id="jobLocation" name="location" value={newJob.location || ""} onChange={handlePostJobInputChange} className="col-span-3" placeholder="e.g., Bengaluru, Karnataka" />
+              <Label htmlFor="jobLocationPost" className="text-right">Location</Label>
+               <Select name="location" onValueChange={(value) => handlePostJobSelectChange("location", value)} value={newJob.location || undefined}>
+                <SelectTrigger id="jobLocationPost" className="col-span-3"><SelectValue placeholder="Select location" /></SelectTrigger>
+                <SelectContent>
+                  {INDIAN_CITIES.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="jobTypePost" className="text-right">Job Type</Label>
               <Select name="type" onValueChange={(value) => handlePostJobSelectChange("type", value)} value={newJob.type || undefined}>
-                <SelectTrigger className="col-span-3"><SelectValue placeholder="Select job type" /></SelectTrigger>
+                <SelectTrigger id="jobTypePost" className="col-span-3"><SelectValue placeholder="Select job type" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Internship">Internship</SelectItem>
-                  <SelectItem value="Full-time">Full-time</SelectItem>
-                  <SelectItem value="Part-time">Part-time</SelectItem>
+                  {JOB_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -329,22 +324,43 @@ export default function JobsPage() {
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">Skills Required</Label>
               <div className="col-span-3 space-y-2">
-                <div className="flex items-center gap-2">
-                    <Input 
-                        type="text" 
-                        placeholder="Add required skill and press Enter" 
-                        className="text-sm h-8"
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                                e.preventDefault();
-                                handleAddSkillToJob(e.currentTarget.value.trim());
-                                e.currentTarget.value = '';
-                            }
-                        }}
-                    />
-                 </div>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                        Add a skill...
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                        <CommandInput placeholder="Search skill..." />
+                        <CommandList>
+                            <CommandEmpty>No skill found.</CommandEmpty>
+                            <CommandGroup>
+                            {IT_KEYWORDS.filter(skill => !(newJob.skills || []).includes(skill)).sort().map((skill) => (
+                                <CommandItem
+                                key={skill}
+                                value={skill}
+                                onSelect={(currentValue) => {
+                                    handleAddSkillToJob(currentValue);
+                                }}
+                                >
+                                <Check
+                                    className={cn(
+                                    "mr-2 h-4 w-4",
+                                    (newJob.skills || []).includes(skill) ? "opacity-100" : "opacity-0"
+                                    )}
+                                />
+                                {skill}
+                                </CommandItem>
+                            ))}
+                            </CommandGroup>
+                        </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {(newJob.skillsRequired || []).map(skill => (
+                  {(newJob.skills || []).map(skill => (
                     <Badge key={skill} variant="default">
                       {skill}
                       <button onClick={() => handleRemoveSkillFromJob(skill)} className="ml-1.5 opacity-70 hover:opacity-100">&times;</button>
@@ -356,7 +372,10 @@ export default function JobsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsPostJobDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handlePostJobSubmit}>Post Job</Button>
+            <Button onClick={handlePostJobSubmit} disabled={isLoadingJobs}>
+              {isLoadingJobs && newJob.title ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+              Post Job
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -365,13 +384,11 @@ export default function JobsPage() {
 }
 
 interface JobCardProps {
-  job: Job | RecommendedJob;
-  isRecommended?: boolean;
+  job: Job;
 }
 
-function JobCard({ job, isRecommended }: JobCardProps) {
-  const { id, title, company, companyLogo, location, type, description, skillsRequired, postedDate, salary } = job;
-  const relevanceScore = (job as RecommendedJob).relevanceScore;
+function JobCard({ job }: JobCardProps) {
+  const { id, title, company, companyLogo, location, type, description, skills, postedDate, salary } = job;
 
   return (
     <Card className="flex flex-col overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
@@ -387,11 +404,6 @@ function JobCard({ job, isRecommended }: JobCardProps) {
           <CardTitle className="text-lg font-semibold font-headline leading-tight">{title}</CardTitle>
           <p className="text-sm text-muted-foreground">{company}</p>
         </div>
-        {isRecommended && relevanceScore && (
-          <Badge variant="default" className="bg-green-500 text-white">
-            {Math.round(relevanceScore * 100)}% Match
-          </Badge>
-        )}
       </CardHeader>
       <CardContent className="p-4 pt-0 flex-grow">
         <div className="flex items-center text-xs text-muted-foreground mb-1">
@@ -404,10 +416,10 @@ function JobCard({ job, isRecommended }: JobCardProps) {
         <div className="space-y-1">
           <h4 className="text-xs font-semibold text-muted-foreground">Skills:</h4>
           <div className="flex flex-wrap gap-1">
-            {skillsRequired.slice(0, 4).map((skill) => (
+            {skills.slice(0, 4).map((skill) => (
               <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
             ))}
-            {skillsRequired.length > 4 && <Badge variant="outline" className="text-xs">+{skillsRequired.length - 4}</Badge>}
+            {skills.length > 4 && <Badge variant="outline" className="text-xs">+{skills.length - 4}</Badge>}
           </div>
         </div>
       </CardContent>
