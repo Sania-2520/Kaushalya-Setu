@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Briefcase, Award, Users, MessageSquare, Zap } from 'lucide-react';
@@ -53,13 +54,13 @@ export default function HomePage() {
               <Link href="/signup">Get Started</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="/jobs">Explore Opportunities</Link>
+              <Link href="/#features-section">Explore Opportunities</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-24 lg:py-32">
+      <section id="features-section" className="w-full py-12 md:py-24 lg:py-32">
         <div className="container px-4 md:px-6">
           <h2 className="text-3xl font-bold tracking-tighter text-center sm:text-4xl md:text-5xl font-headline">
             Unlock Your Potential
