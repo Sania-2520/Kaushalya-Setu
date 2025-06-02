@@ -25,12 +25,6 @@ const features = [
     link: '/portfolio',
   },
   {
-    icon: <SparklesIcon className="h-10 w-10 text-primary" />,
-    title: 'AI Resume Reviewer',
-    description: 'Get instant, AI-powered feedback on your resume, including a score and actionable suggestions.',
-    link: '/resume-reviewer',
-  },
-  {
     icon: <Award className="h-10 w-10 text-primary" />,
     title: 'Micro-Certifications',
     description: 'Earn verifiable digital skill badges through short courses and in-app assessments.',
@@ -40,7 +34,7 @@ const features = [
     icon: <Zap className="h-10 w-10 text-primary" />,
     title: 'AI-Powered Skill Tagging',
     description: 'Automatically identify and tag relevant skills from your projects to enhance your portfolio.',
-    link: '/portfolio', // Stays linked to portfolio as it's a sub-feature there
+    link: '/portfolio', 
   },
   {
     icon: <Lightbulb className="h-10 w-10 text-primary" />,
@@ -190,6 +184,7 @@ export default function HomePage() {
                       cursor={false}
                       content={<ChartTooltipContent indicator="dot" />}
                     />
+                    {/* <CartesianGrid strokeDasharray="3 3" /> */}
                     <Bar dataKey="tasksCompleted" fill="var(--color-tasksCompleted)" radius={4} />
                     <Bar dataKey="hoursStudied" fill="var(--color-hoursStudied)" radius={4} />
                   </BarChart>
@@ -257,3 +252,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

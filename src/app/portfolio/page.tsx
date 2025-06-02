@@ -8,12 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, UploadCloud, Trash2, Edit3, Award, ThumbsUp, Eye, Share2, FileText, Loader2, Sparkles } from "lucide-react";
+import { PlusCircle, UploadCloud, Trash2, Edit3, Award, ThumbsUp, Eye, Share2, Loader2, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { identifySkills, SkillTaggingInput, SkillTaggingOutput } from '@/ai/flows/skill-tagging';
-import { getResumeFeedback, ResumeFeedbackInput, ResumeFeedbackOutput } from '@/ai/flows/resume-feedback-flow';
 import { useToast } from "@/hooks/use-toast";
 
 interface Project {
@@ -56,12 +55,6 @@ export default function PortfolioPage() {
   const [isTagging, setIsTagging] = useState(false);
   const { toast } = useToast();
   const [profileCompletion, setProfileCompletion] = useState(0);
-
-  // State for Resume Analyzer
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [resumeFileName, setResumeFileName] = useState<string | null>(null);
-  const [resumeFeedback, setResumeFeedback] = useState<string | null>(null);
-  const [isAnalyzingResume, setIsAnalyzingResume] = useState(false);
 
   useEffect(() => {
     const baseCompletion = 20; 
@@ -166,65 +159,6 @@ export default function PortfolioPage() {
     toast({ title: "Project Deleted", description: "The project has been removed from your portfolio." });
   };
 
-  // Resume Analyzer Functions
-  const handleResumeFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type === "application/pdf") {
-        if (file.size <= 5 * 1024 * 1024) { // Max 5MB
-          setResumeFile(file);
-          setResumeFileName(file.name);
-          setResumeFeedback(null); // Clear previous feedback
-        } else {
-          toast({ title: "File Too Large", description: "Resume PDF must be 5MB or less.", variant: "destructive" });
-          setResumeFile(null);
-          setResumeFileName(null);
-        }
-      } else {
-        toast({ title: "Invalid File Type", description: "Please upload a PDF file for your resume.", variant: "destructive" });
-        setResumeFile(null);
-        setResumeFileName(null);
-      }
-    }
-  };
-
-  const handleAnalyzeResume = async () => {
-    if (!resumeFile) {
-      toast({ title: "No Resume Selected", description: "Please upload your resume PDF first.", variant: "destructive" });
-      return;
-    }
-    setIsAnalyzingResume(true);
-    setResumeFeedback(null);
-
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(resumeFile);
-      reader.onload = async () => {
-        const resumeDataUri = reader.result as string;
-        if (!resumeDataUri) {
-          toast({ title: "Error Reading File", description: "Could not read the resume file.", variant: "destructive" });
-          setIsAnalyzingResume(false);
-          return;
-        }
-        const input: ResumeFeedbackInput = { resumeDataUri };
-        const result: ResumeFeedbackOutput = await getResumeFeedback(input);
-        setResumeFeedback(result.feedback);
-        toast({ title: "Resume Analysis Complete!", description: "Check the feedback below." });
-      };
-      reader.onerror = () => {
-        toast({ title: "Error Reading File", description: "Could not read the resume file.", variant: "destructive" });
-        setIsAnalyzingResume(false);
-      };
-    } catch (error) {
-      console.error("Resume analysis failed:", error);
-      toast({ title: "Resume Analysis Error", description: `Could not analyze resume. ${error instanceof Error ? error.message : 'Please try again.'}`, variant: "destructive" });
-      setResumeFeedback("Failed to get feedback. Please try again.");
-    } finally {
-      setIsAnalyzingResume(false);
-    }
-  };
-
-
   return (
     <div className="space-y-8">
       <Card className="overflow-hidden shadow-lg">
@@ -271,52 +205,6 @@ export default function PortfolioPage() {
             </div>
         </CardContent>
       </Card>
-
-      {/* Resume Analyzer Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center">
-            <Sparkles className="mr-2 h-6 w-6 text-primary" />
-            AI Resume Analyzer
-          </CardTitle>
-          <CardDescription>
-            Upload your resume (PDF, max 5MB) to get personalized feedback and suggestions for improvement.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="resumeUpload" className="sr-only">Upload Resume</Label>
-            <Input 
-              id="resumeUpload" 
-              type="file" 
-              accept=".pdf" 
-              onChange={handleResumeFileChange} 
-              className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
-            />
-            {resumeFileName && <p className="text-sm text-muted-foreground mt-2">Selected: {resumeFileName}</p>}
-          </div>
-          <Button onClick={handleAnalyzeResume} disabled={!resumeFile || isAnalyzingResume}>
-            {isAnalyzingResume ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileText className="mr-2 h-4 w-4" />
-            )}
-            {isAnalyzingResume ? "Analyzing..." : "Analyze Resume"}
-          </Button>
-          {resumeFeedback && (
-            <div className="mt-4 p-4 border rounded-md bg-muted/50">
-              <h4 className="font-semibold mb-2 font-headline text-lg">Resume Feedback:</h4>
-              <Textarea
-                readOnly
-                value={resumeFeedback}
-                className="min-h-[200px] font-body bg-background"
-                rows={15}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
 
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold font-headline">My Projects</h2>
@@ -421,7 +309,7 @@ export default function PortfolioPage() {
               <Label className="text-right pt-2">Skills</Label>
               <div className="col-span-3 space-y-2">
                 <Button variant="outline" size="sm" onClick={handleSkillTagging} disabled={isTagging || !projectDescriptionForTagging.trim()}>
-                  <Award className="mr-2 h-4 w-4" /> {isTagging ? "Suggesting..." : "AI Suggest Skills"}
+                  <Sparkles className="mr-2 h-4 w-4" /> {isTagging ? "Suggesting..." : "AI Suggest Skills"}
                 </Button>
                 {suggestedSkills.length > 0 && (
                   <div className="p-2 border rounded-md bg-secondary/30">
@@ -467,3 +355,5 @@ export default function PortfolioPage() {
     </div>
   );
 }
+
+    
