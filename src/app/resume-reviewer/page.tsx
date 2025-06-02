@@ -7,10 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { UploadCloud, Loader2, Sparkles, AlertCircle, Download, ScanSearch, FileSignature, CheckCircle, Info, ThumbsUp, XCircle } from "lucide-react";
+import { UploadCloud, Loader2, Sparkles, AlertCircle, Download, ScanSearch, FileSignature, CheckCircle, Info, ThumbsUp, XCircle, FileText } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { getResumeFeedback, ResumeFeedbackInput, ResumeFeedbackOutput, SectionAnalysis } from '@/ai/flows/resume-feedback-flow';
+import { getResumeFeedback, ResumeFeedbackInput, ResumeFeedbackOutput } from '@/ai/flows/resume-feedback-flow';
+import type { SectionAnalysis } from '@/ai/flows/resume-feedback-flow'; // Import the type if it's exported
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -80,8 +81,10 @@ export default function ResumeAnalyzerPage() {
         resumeDataUri: base64data, 
         targetRoleOrDomain: targetRoleOrDomain || undefined 
       };
-      const result: ResumeFeedbackOutput = await getResumeFeedback(input);
-
+      const result = await getResumeFeedback(input);
+      
+      // The flow now directly returns ResumeFeedbackOutput or throws an error.
+      // If it resolves, we assume the structure is correct as per the schema.
       setFeedbackResult(result);
       toast({ title: "Analysis Complete!", description: "Your resume feedback is ready." });
 
@@ -89,7 +92,7 @@ export default function ResumeAnalyzerPage() {
       console.error("Resume analysis failed:", error);
       toast({ 
         title: "Analysis Failed", 
-        description: `Could not analyze resume. ${error instanceof Error ? error.message : 'An unknown error occurred. Check console for details.'}`, 
+        description: `Could not analyze resume. ${error instanceof Error ? error.message : 'An unknown error occurred or the AI returned an unexpected format. Check console for details.'}`, 
         variant: "destructive" 
       });
       setFeedbackResult(null);
@@ -335,5 +338,3 @@ export default function ResumeAnalyzerPage() {
   );
 }
 
-
-    
