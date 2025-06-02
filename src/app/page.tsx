@@ -1,9 +1,9 @@
 
-"use client"; // Required for charts and client-side interactions
+"use client"; 
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route, TrendingUp, Star, BookOpenText } from 'lucide-react';
+import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route, TrendingUp, Star, BookOpenText, Sparkles as SparklesIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
@@ -13,7 +13,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis } from "recharts"; // Removed CartesianGrid
+import { BarChart, Bar, XAxis, YAxis } from "recharts";
 import { useEffect, useState } from 'react';
 
 
@@ -25,6 +25,12 @@ const features = [
     link: '/portfolio',
   },
   {
+    icon: <SparklesIcon className="h-10 w-10 text-primary" />,
+    title: 'AI Resume Reviewer',
+    description: 'Get instant, AI-powered feedback on your resume, including a score and actionable suggestions.',
+    link: '/resume-reviewer',
+  },
+  {
     icon: <Award className="h-10 w-10 text-primary" />,
     title: 'Micro-Certifications',
     description: 'Earn verifiable digital skill badges through short courses and in-app assessments.',
@@ -34,7 +40,7 @@ const features = [
     icon: <Zap className="h-10 w-10 text-primary" />,
     title: 'AI-Powered Skill Tagging',
     description: 'Automatically identify and tag relevant skills from your projects to enhance your portfolio.',
-    link: '/portfolio',
+    link: '/portfolio', // Stays linked to portfolio as it's a sub-feature there
   },
   {
     icon: <Lightbulb className="h-10 w-10 text-primary" />,
@@ -96,8 +102,6 @@ export default function HomePage() {
   const [currentMotivationalMessage, setCurrentMotivationalMessage] = useState("");
 
   useEffect(() => {
-    // Simulate fetching or calculating progress for non-logged-in user
-    // For demonstration, we'll set a static value and pick a random message
     setOverallProgress(65); 
     setCurrentMotivationalMessage(motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]);
   }, []);
@@ -174,7 +178,6 @@ export default function HomePage() {
               <CardContent className="h-[350px] w-full">
                 <ChartContainer config={chartConfig} className="w-full h-full">
                   <BarChart accessibilityLayer data={weeklyProgressData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                    {/* <CartesianGrid vertical={false} strokeDasharray="3 3" /> */}
                     <XAxis
                       dataKey="day"
                       tickLine={false}

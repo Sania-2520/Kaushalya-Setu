@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText } from 'lucide-react';
+import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Sparkles } from 'lucide-react';
 import Logo from '@/components/shared/logo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 const navLinks = [
   { href: '/', label: 'Home', icon: <BookOpen className="h-5 w-5" /> },
   { href: '/portfolio', label: 'Portfolio', icon: <Briefcase className="h-5 w-5" /> },
+  { href: '/resume-reviewer', label: 'Resume Reviewer', icon: <Sparkles className="h-5 w-5" /> },
   { href: '/jobs', label: 'Jobs', icon: <Users className="h-5 w-5" /> },
   { href: '/live-sessions', label: 'Live Sessions', icon: <MessageSquare className="h-5 w-5" /> },
   { href: '/course-progress', label: 'Course Progress', icon: <Route className="h-5 w-5" /> },
@@ -58,7 +59,7 @@ export default function Header() {
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           {navLinks.map((link) => (
             <Link
-              key={link.label} // Use label as key if hrefs can be non-unique for some reason, or ensure href is unique
+              key={link.label}
               href={link.href}
               className={cn(
                 "transition-colors hover:text-primary",
@@ -130,7 +131,7 @@ export default function Header() {
               <nav className="flex flex-col space-y-4 mt-8">
                 {navLinks.map((link) => (
                   <Link
-                    key={link.label} // Use label as key
+                    key={link.label} 
                     href={link.href}
                     className={cn(
                       "flex items-center space-x-2 rounded-md p-2 transition-colors hover:bg-accent hover:text-accent-foreground",
