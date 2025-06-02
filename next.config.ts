@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback, // Spread existing fallbacks if any
-        async_hooks: false,
+        async_hooks: false, // Provide an empty module for async_hooks on the client
       };
     }
     return config;
