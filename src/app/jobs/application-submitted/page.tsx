@@ -1,6 +1,5 @@
 
 "use client";
-// This file is kept for potential future use if internal job applications are re-introduced.
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,17 +23,23 @@ function ApplicationSubmittedContent() {
           <CardTitle className="text-2xl font-bold font-headline text-primary">Application Submitted!</CardTitle>
           <CardDescription className="font-body">
             {jobTitle && company ? `Your application for ${jobTitle} at ${company} has been successfully submitted.` : "Your application has been successfully submitted."}
-            <br/>This page is for internal applications. For external jobs, you would have applied on the provider's site.
+            <br/>We wish you the best of luck!
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center space-y-4">
           <p className="text-muted-foreground">
-            You can track the status of your internal applications in your dashboard (feature coming soon).
+            You can track the status of your applications in your dashboard (feature coming soon).
+            Companies will reach out to you via the email you provided if they wish to proceed.
           </p>
           <div className="flex gap-4">
             <Button asChild>
               <Link href="/jobs">
                 <Briefcase className="mr-2 h-4 w-4" /> Back to Job Listings
+              </Link>
+            </Button>
+             <Button asChild variant="outline">
+              <Link href="/portfolio">
+                View Your Portfolio
               </Link>
             </Button>
           </div>
@@ -52,3 +57,5 @@ export default function ApplicationSubmittedPage() {
         </Suspense>
     )
 }
+
+    
