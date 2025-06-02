@@ -1,75 +1,89 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus } from "lucide-react";
+import { UserPlus, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Logo from "@/components/shared/logo";
 import { useToast } from "@/hooks/use-toast";
 
-export default function SignupPage() {
+function SignupComponent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [polytechnicName, setPolytechnicName] = useState<string>("");
   const [courseDepartment, setCourseDepartment] = useState<string>("");
   const [semester, setSemester] = useState<string>("");
-  const router = useRouter();
-  const { toast } = useToast();
+  
   const [isClient, setIsClient] = useState(false);
+  const [isRoleFromQuery, setIsRoleFromQuery] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    const roleFromQuery = searchParams.get('role');
+    if (roleFromQuery) {
+      setSelectedRole(roleFromQuery);
+      setIsRoleFromQuery(true);
+    }
+  }, [searchParams]);
 
   const handleSignup = () => {
     // Basic validation
+    if (!fullName || !email || !password || !confirmPassword) {
+      toast({ title: "Missing Fields", description: "Please fill in all required fields.", variant: "destructive" });
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast({ title: "Password Mismatch", description: "Passwords do not match.", variant: "destructive" });
+      return;
+    }
     if (!selectedRole) {
-      toast({
-        title: "Role not selected",
-        description: "Please select your role to complete signup.",
-        variant: "destructive",
-      });
+      toast({ title: "Role not selected", description: "Please select your role.", variant: "destructive" });
       return;
     }
     if (selectedRole === "student" && (!polytechnicName || !courseDepartment || !semester)) {
-         toast({
-            title: "Missing Information",
-            description: "Please fill in Polytechnic Name, Course/Department, and Semester for student role.",
-            variant: "destructive",
-         });
-         return;
+      toast({ title: "Student Info Missing", description: "Polytechnic name, course, and semester are required for students.", variant: "destructive" });
+      return;
     }
-
 
     if (isClient) {
       localStorage.setItem('isLoggedIn', 'true');
-      // Store additional info conceptually for now
       localStorage.setItem('userRole', selectedRole);
+      localStorage.setItem('userName', fullName);
       if (selectedRole === 'student') {
         localStorage.setItem('polytechnicName', polytechnicName);
-        localStorage.setItem('userName', (document.getElementById('fullName') as HTMLInputElement)?.value || 'Student User');
       }
     }
 
     toast({
       title: "Signup Successful!",
-      description: `Welcome! Redirecting you to the ${selectedRole} portal...`,
+      description: `Welcome, ${fullName}! Redirecting you...`,
     });
 
-    // Redirect based on role
-    if (selectedRole === "student") {
-      router.push("/portfolio"); // Or student dashboard if different
-    } else if (selectedRole === "industry") {
-      router.push("/jobs"); // Or industry partner dashboard
-    } else if (selectedRole === "polytechnic") {
-      router.push("/admin-dashboard");
-    } else {
-      router.push("/"); // Fallback
+    switch (selectedRole) {
+      case "student":
+        router.push("/portfolio");
+        break;
+      case "industry":
+        router.push("/jobs");
+        break;
+      case "polytechnic":
+        router.push("/admin-dashboard");
+        break;
+      default:
+        router.push("/"); 
     }
   };
 
@@ -80,29 +94,31 @@ export default function SignupPage() {
           <div className="flex justify-center mb-4">
             <Logo className="h-12 w-12" />
           </div>
-          <CardTitle className="text-2xl font-bold font-headline">Create Your Account</CardTitle>
+          <CardTitle className="text-2xl font-bold font-headline">
+            Create Account {selectedRole && `as ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`}
+          </CardTitle>
           <CardDescription>Join Kaushalya Setu and start building your future.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
-            <Input id="fullName" type="text" placeholder="Your full name" required />
+            <Input id="fullName" type="text" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="you@example.com" required />
+            <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required />
+            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input id="confirmPassword" type="password" required />
+            <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="role">I am a...</Label>
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
+            <Select value={selectedRole} onValueChange={setSelectedRole} disabled={isRoleFromQuery}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="Select your role" />
               </SelectTrigger>
@@ -147,12 +163,25 @@ export default function SignupPage() {
           </Button>
           <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-primary hover:underline">
+            <Link href={selectedRole ? `/login?role=${selectedRole}` : "/role-select"} className="font-semibold text-primary hover:underline">
               Login
             </Link>
           </p>
+          <Button variant="link" onClick={() => router.push('/role-select')} className="text-sm text-muted-foreground hover:text-primary">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Role Selection
+          </Button>
         </CardFooter>
       </Card>
     </div>
   );
 }
+
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignupComponent />
+    </Suspense>
+  )
+}
+
