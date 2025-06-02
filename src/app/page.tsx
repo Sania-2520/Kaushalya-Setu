@@ -13,7 +13,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts";
+import { BarChart, Bar, XAxis, YAxis } from "recharts"; // Removed CartesianGrid, Tooltip as RechartsTooltip to match original if not used
 import { useEffect, useState } from 'react';
 
 
@@ -114,8 +114,37 @@ export default function HomePage() {
               <Link href="/#features-section">Explore Opportunities</Link>
             </Button>
             <Button size="lg" variant="secondary" asChild>
-              <Link href="/#progress-tracker-section">Track Your Progress</Link>
+              <Link href="/course-progress">View Course Progress</Link>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      <section id="features-section" className="w-full py-12 md:py-24 lg:py-32">
+        <div className="container px-4 md:px-6">
+          <h2 className="text-3xl font-bold tracking-tighter text-center sm:text-4xl md:text-5xl font-headline">
+            Unlock Your Potential
+          </h2>
+          <p className="mx-auto max-w-[700px] text-foreground/70 md:text-xl text-center mt-4 mb-12 font-body">
+            Discover a platform designed to certify your skills, build your portfolio, and connect you with the right opportunities.
+          </p>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map((feature) => (
+              <Card key={feature.title} className="flex flex-col transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                <CardHeader className="items-center">
+                  {feature.icon}
+                  <CardTitle className="mt-4 text-xl font-semibold font-headline">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <p className="text-foreground/70 text-center font-body">{feature.description}</p>
+                </CardContent>
+                <div className="p-6 pt-0">
+                   <Button variant="link" className="w-full text-primary" asChild>
+                     <Link href={feature.link}>Learn More &rarr;</Link>
+                   </Button>
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
@@ -124,10 +153,10 @@ export default function HomePage() {
         <div className="container px-4 md:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
-              Track Your Daily Progress
+              Sample Progress Insights
             </h2>
             <p className="mx-auto max-w-[700px] text-foreground/70 md:text-xl mt-4 font-body">
-              Visualize your learning journey and stay motivated! This is a sample tracker. Log in for personalized progress.
+              Here's a glimpse of how you can visualize your learning journey. For your personalized map and detailed tracking, visit the Course Progress page.
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -142,7 +171,7 @@ export default function HomePage() {
               <CardContent className="h-[350px] w-full">
                 <ChartContainer config={chartConfig} className="w-full h-full">
                   <BarChart accessibilityLayer data={weeklyProgressData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    {/* <CartesianGrid vertical={false} strokeDasharray="3 3" /> Removed as per original if not used explicitly */}
                     <XAxis
                       dataKey="day"
                       tickLine={false}
@@ -191,35 +220,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="features-section" className="w-full py-12 md:py-24 lg:py-32">
-        <div className="container px-4 md:px-6">
-          <h2 className="text-3xl font-bold tracking-tighter text-center sm:text-4xl md:text-5xl font-headline">
-            Unlock Your Potential
-          </h2>
-          <p className="mx-auto max-w-[700px] text-foreground/70 md:text-xl text-center mt-4 mb-12 font-body">
-            Discover a platform designed to certify your skills, build your portfolio, and connect you with the right opportunities.
-          </p>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => (
-              <Card key={feature.title} className="flex flex-col transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                <CardHeader className="items-center">
-                  {feature.icon}
-                  <CardTitle className="mt-4 text-xl font-semibold font-headline">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-foreground/70 text-center font-body">{feature.description}</p>
-                </CardContent>
-                <div className="p-6 pt-0">
-                   <Button variant="link" className="w-full text-primary" asChild>
-                     <Link href={feature.link}>Learn More &rarr;</Link>
-                   </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="w-full py-12 md:py-24 lg:py-32 bg-primary/5">
         <div className="container grid items-center gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-12">
           <Image
@@ -251,3 +251,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
