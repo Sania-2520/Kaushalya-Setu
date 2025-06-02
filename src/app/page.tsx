@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route, TrendingUp, Star } from 'lucide-react';
+import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route, TrendingUp, Star, BookOpenText } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
@@ -53,6 +53,12 @@ const features = [
     title: 'Course Progress Tracker',
     description: 'Visualize your learning journey with a map-like structure for courses and modules.',
     link: '/course-progress',
+  },
+  {
+    icon: <BookOpenText className="h-10 w-10 text-primary" />,
+    title: 'Knowledge Base Explorer',
+    description: 'Navigate gamified learning paths across various IT sectors and master new skills.',
+    link: '/knowledge-base',
   },
 ];
 
@@ -153,7 +159,7 @@ export default function HomePage() {
               Sample Progress Insights
             </h2>
             <p className="mx-auto max-w-[700px] text-foreground/70 md:text-xl mt-4 font-body">
-              Here's a glimpse of how you can visualize your learning journey. For your personalized map and detailed tracking, visit the Course Progress page.
+             Here's a glimpse of how you can visualize your learning journey. For your personalized map and detailed tracking, visit the Course Progress page.
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -248,4 +254,3 @@ export default function HomePage() {
     </div>
   );
 }
-
