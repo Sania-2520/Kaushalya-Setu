@@ -174,7 +174,7 @@ export default function PortfolioPage() {
         <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-end space-y-4 sm:space-y-0 sm:space-x-6 -mt-16 sm:-mt-20 relative z-10">
             <div className="relative">
                 <Image 
-                    src="https://placehold.co/160x160.png?text=User" 
+                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwcm9maWwlMjBwaWN0dXJlfGVufDB8fHx8MTc0ODg5NjIwNnww&ixlib=rb-4.1.0&q=80&w=1080" 
                     alt="User Avatar" 
                     width={160} 
                     height={160} 
