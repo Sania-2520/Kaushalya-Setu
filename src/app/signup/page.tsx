@@ -23,7 +23,7 @@ function SignupComponent() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("");
-  const [polytechnicName, setPolytechnicName] = useState<string>("");
+  const [polytechnicName, setPolytechnicName] = useState<string>(""); // Used for both student's polytechnic and admin's institution
   const [courseDepartment, setCourseDepartment] = useState<string>("");
   const [semester, setSemester] = useState<string>("");
   
@@ -56,12 +56,16 @@ function SignupComponent() {
       toast({ title: "Student Info Missing", description: "Polytechnic name, course, and semester are required for students.", variant: "destructive" });
       return;
     }
+    if (selectedRole === "polytechnic" && !polytechnicName.trim()) {
+      toast({ title: "Institution Info Missing", description: "Polytechnic Institution Name is required for admins.", variant: "destructive" });
+      return;
+    }
 
     if (isClient) {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userRole', selectedRole);
       localStorage.setItem('userName', fullName);
-      if (selectedRole === 'student') {
+      if (selectedRole === 'student' || selectedRole === 'polytechnic') {
         localStorage.setItem('polytechnicName', polytechnicName);
       }
     }
@@ -132,8 +136,8 @@ function SignupComponent() {
           {selectedRole === 'student' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="polytechnicName">Polytechnic Name</Label>
-                <Input id="polytechnicName" type="text" placeholder="Your polytechnic" value={polytechnicName} onChange={(e) => setPolytechnicName(e.target.value)} required />
+                <Label htmlFor="studentPolytechnicName">Polytechnic Name</Label>
+                <Input id="studentPolytechnicName" type="text" placeholder="Your polytechnic" value={polytechnicName} onChange={(e) => setPolytechnicName(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="courseDepartment">Course/Department</Label>
@@ -151,6 +155,15 @@ function SignupComponent() {
                         ))}
                     </SelectContent>
                 </Select>
+              </div>
+            </>
+          )}
+
+          {selectedRole === 'polytechnic' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="adminPolytechnicName">Polytechnic Institution Name</Label>
+                <Input id="adminPolytechnicName" type="text" placeholder="Name of your polytechnic institution" value={polytechnicName} onChange={(e) => setPolytechnicName(e.target.value)} required />
               </div>
             </>
           )}
