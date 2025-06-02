@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb } from 'lucide-react';
+import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -35,6 +35,12 @@ const features = [
     title: 'Live Webinars & Mentorship',
     description: 'Connect with industry experts, participate in Q&A forums, and get valuable mentorship.',
     link: '/live-sessions',
+  },
+  {
+    icon: <Route className="h-10 w-10 text-primary" />,
+    title: 'Course Progress Tracker',
+    description: 'Visualize your learning journey with a map-like structure for courses and modules.',
+    link: '/course-progress',
   },
 ];
 

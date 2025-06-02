@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon } from 'lucide-react';
+import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route } from 'lucide-react';
 import Logo from '@/components/shared/logo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ const navLinks = [
   { href: '/portfolio', label: 'Portfolio', icon: <Briefcase className="h-5 w-5" /> },
   { href: '/jobs', label: 'Jobs', icon: <Users className="h-5 w-5" /> },
   { href: '/live-sessions', label: 'Live Sessions', icon: <MessageSquare className="h-5 w-5" /> },
+  { href: '/course-progress', label: 'Course Progress', icon: <Route className="h-5 w-5" /> },
 ];
 
 export default function Header() {
