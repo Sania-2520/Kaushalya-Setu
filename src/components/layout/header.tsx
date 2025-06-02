@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Target, Sparkles, GraduationCap, BarChart3, LayoutDashboard, Building, Edit, FileText, PieChart, CalendarCheck2, Search } from 'lucide-react';
+import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Target, Sparkles, GraduationCap, BarChart3, LayoutDashboard, Building, Edit, FileText, PieChart, CalendarCheck2, Search, FileSignature, ScanSearch } from 'lucide-react';
 import Logo from '@/components/shared/logo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 const studentNavLinks = [
   { href: '/', label: 'Home', icon: <GraduationCap className="h-5 w-5" /> },
   { href: '/portfolio', label: 'Portfolio', icon: <Briefcase className="h-5 w-5" /> },
+  { href: '/resume-builder', label: 'Resume Builder', icon: <FileSignature className="h-5 w-5" /> },
+  { href: '/resume-reviewer', label: 'Resume Analyzer', icon: <ScanSearch className="h-5 w-5" /> },
   { href: '/jobs', label: 'Jobs', icon: <Users className="h-5 w-5" /> },
   { href: '/live-sessions', label: 'Live Sessions', icon: <MessageSquare className="h-5 w-5" /> },
   { href: '/course-progress', label: 'My Progress', icon: <Route className="h-5 w-5" /> },
@@ -243,4 +245,3 @@ export default function Header() {
     </header>
   );
 }
-

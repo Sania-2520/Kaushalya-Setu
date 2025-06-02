@@ -7,17 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { UploadCloud, Loader2, FileText, Sparkles, AlertCircle, Download } from "lucide-react";
+import { UploadCloud, Loader2, FileText, Sparkles, AlertCircle, Download, ScanSearch, FileSignature } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { getResumeFeedback, ResumeFeedbackInput, ResumeFeedbackOutput } from '@/ai/flows/resume-feedback-flow';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 const ACCEPTED_FILE_TYPES = ['application/pdf'];
 
-export default function ResumeReviewerPage() {
+export default function ResumeAnalyzerPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [feedbackResult, setFeedbackResult] = useState<ResumeFeedbackOutput | null>(null);
@@ -102,9 +103,9 @@ export default function ResumeReviewerPage() {
       <Card className="shadow-lg">
         <CardHeader>
             <div className="flex items-center gap-3 mb-2">
-                 <Sparkles className="h-10 w-10 text-primary" />
+                 <ScanSearch className="h-10 w-10 text-primary" />
                 <div>
-                    <CardTitle className="text-2xl md:text-3xl font-bold font-headline">📄 Resume Reviewer</CardTitle>
+                    <CardTitle className="text-2xl md:text-3xl font-bold font-headline">📄 Resume Analyzer</CardTitle>
                     <CardDescription className="mt-1 text-sm md:text-base">
                         Improve your resume with AI! Upload your resume and let our intelligent analyzer review it for structure, skills, keywords, and completeness. 
                         You'll receive a score out of 100 along with personalized feedback to improve your resume for internships and job applications.
@@ -113,6 +114,7 @@ export default function ResumeReviewerPage() {
             </div>
         </CardHeader>
         <CardContent>
+            <p className="font-semibold mb-1">Our tool checks for:</p>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground mb-4">
                 <li>Missing sections (like projects, skills, achievements)</li>
                 <li>Keyword density (relevant tech skills, action verbs)</li>
@@ -144,7 +146,7 @@ export default function ResumeReviewerPage() {
             </div>
           </div>
           <Button onClick={handleAnalyzeResume} disabled={isLoading || !resumeFile} className="w-full">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
             {isLoading ? "Analyzing..." : "Analyze My Resume"}
           </Button>
         </CardContent>
@@ -172,7 +174,7 @@ export default function ResumeReviewerPage() {
             </div>
             
             <div>
-              <h3 className="text-xl font-semibold mb-2">Detailed Feedback:</h3>
+              <h3 className="text-xl font-semibold mb-2">AI Feedback:</h3>
               <Textarea value={feedbackResult.feedback} readOnly className="min-h-[250px] bg-muted/30 text-sm font-mono leading-relaxed border-border" />
             </div>
 
@@ -204,11 +206,18 @@ export default function ResumeReviewerPage() {
                             </div>
                         </div>
                     )}
+                    {(!feedbackResult.keywordAnalysis.relevantKeywordsFound || feedbackResult.keywordAnalysis.relevantKeywordsFound.length === 0) && 
+                     (!feedbackResult.keywordAnalysis.suggestedKeywordsToAdd || feedbackResult.keywordAnalysis.suggestedKeywordsToAdd.length === 0) &&
+                     <p className="text-sm text-muted-foreground italic">No specific keywords identified for highlighting or suggestion in this analysis.</p>
+                    }
                 </div>
             )}
+             <p className="text-sm text-muted-foreground mt-4">
+                **Formatting Issues & Suggestions for Improvement** are typically included within the main AI Feedback text above. The AI also considers **Skill Relevance** during its analysis.
+             </p>
           </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-3 border-t pt-4">
-            <div className="flex gap-2">
+          <CardFooter className="flex flex-col sm:flex-row justify-between items-start gap-3 border-t pt-4">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" disabled>
                 <Download className="mr-2 h-4 w-4" /> Download Report (PDF)
               </Button>
@@ -220,6 +229,11 @@ export default function ResumeReviewerPage() {
                  if(fileInput) fileInput.value = "";
                }}>
                 <UploadCloud className="mr-2 h-4 w-4" /> Re-upload & Analyze New Resume
+              </Button>
+               <Button variant="outline" asChild>
+                <Link href="/resume-builder">
+                    <FileSignature className="mr-2 h-4 w-4" /> Edit in Resume Builder
+                </Link>
               </Button>
             </div>
              <p className="text-xs text-muted-foreground italic flex items-center mt-2 sm:mt-0">
