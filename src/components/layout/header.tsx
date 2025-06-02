@@ -23,9 +23,9 @@ const defaultNavLinks = [
 ];
 
 const adminNavLinks = [
-  { href: '/admin-dashboard', label: 'Manage Students', icon: <Users className="h-5 w-5" /> },
-  { href: '/admin-dashboard', label: 'Institutional Analytics', icon: <BarChart3 className="h-5 w-5" /> },
-  { href: '/admin-dashboard', label: 'Platform Settings', icon: <Settings className="h-5 w-5" /> },
+  { href: '/admin-dashboard/manage-students', label: 'Manage Students', icon: <Users className="h-5 w-5" /> },
+  { href: '/admin-dashboard/analytics', label: 'Institutional Analytics', icon: <BarChart3 className="h-5 w-5" /> },
+  { href: '/admin-dashboard/platform-settings', label: 'Platform Settings', icon: <Settings className="h-5 w-5" /> },
 ];
 
 export default function Header() {
@@ -71,11 +71,13 @@ export default function Header() {
   };
 
   const currentNavLinks = loggedIn && userRole === 'polytechnic' ? adminNavLinks : defaultNavLinks;
+  const isAdminPortal = loggedIn && userRole === 'polytechnic';
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
-        <Link href="/" className="mr-6 flex items-center space-x-2">
+        <Link href={isAdminPortal ? "/admin-dashboard" : "/"} className="mr-6 flex items-center space-x-2">
           <Logo />
           <span className="font-bold sm:inline-block font-headline text-primary">
             Kaushalya Setu
@@ -113,19 +115,19 @@ export default function Header() {
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{userName}</p>
                     {polytechnicName && userRole !== 'polytechnic' && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
-                    {userRole === 'polytechnic' && <p className="text-xs leading-none text-muted-foreground">Admin Portal</p>}
+                    {isAdminPortal && <p className="text-xs leading-none text-muted-foreground">Admin Portal</p>}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {userRole !== 'polytechnic' && (
+                {!isAdminPortal && (
                   <DropdownMenuItem onClick={() => router.push('/portfolio')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => router.push('/account-settings')}>
+                 <DropdownMenuItem onClick={() => router.push(isAdminPortal ? '/admin-dashboard' : '/account-settings')}>
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
+                  <span>{isAdminPortal ? "Dashboard" : "Settings"}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
@@ -200,4 +202,3 @@ export default function Header() {
     </header>
   );
 }
-

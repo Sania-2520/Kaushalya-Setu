@@ -5,12 +5,13 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, Users, BarChart3, Settings, Download, Eye, BookOpen, Briefcase, TrendingUp } from "lucide-react";
+import { ShieldCheck, Users, BarChart3, Settings, Download, Eye, BookOpen, Briefcase, TrendingUp, ArrowRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 interface StudentAnalytic {
   id: string;
@@ -63,7 +64,7 @@ export default function AdminDashboardPage() {
         </CardHeader>
         <CardContent>
           <p className="font-body">
-            From here, you can (eventually) manage student accounts, view institutional analytics, oversee industry partnerships, and configure platform settings specific to your polytechnic.
+            From here, you can manage student accounts, view institutional analytics, oversee industry partnerships, and configure platform settings specific to your polytechnic.
           </p>
         </CardContent>
       </Card>
@@ -78,108 +79,108 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-muted-foreground font-body mb-4">
               View student profiles, track progress, manage enrollments, and download student progress reports.
             </p>
-            <Button onClick={handleDownloadProgress} variant="outline" size="sm">
-              <Download className="mr-2 h-4 w-4" /> Download Progress Report
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin-dashboard/manage-students">
+                Go to Manage Students <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           </CardContent>
         </Card>
         
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center gap-4 pb-2">
+            <BarChart3 className="h-8 w-8 text-primary" />
+            <CardTitle className="text-xl font-semibold font-headline">Institutional Analytics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground font-body mb-4">
+              Access reports on student engagement, skill development, and placement success.
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin-dashboard/analytics">
+                View Analytics <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center gap-4 pb-2">
+            <Settings className="h-8 w-8 text-primary" />
+            <CardTitle className="text-xl font-semibold font-headline">Platform Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground font-body mb-4">
+                Configure institution-specific settings and integrations.
+            </p>
+             <Button asChild variant="outline" size="sm">
+              <Link href="/admin-dashboard/platform-settings">
+                Go to Settings <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+      
+       {/* Dialog for quick view of student analytics - can be kept or removed if analytics page is comprehensive */}
         <Dialog open={isAnalyticsDialogOpen} onOpenChange={setIsAnalyticsDialogOpen}>
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center gap-4 pb-2">
-              <BarChart3 className="h-8 w-8 text-primary" />
-              <CardTitle className="text-xl font-semibold font-headline">Institutional Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground font-body mb-4">
-                Access reports on student engagement, skill development, and placement success. Click to view detailed student analytics.
-              </p>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Eye className="mr-2 h-4 w-4" /> View Student Analytics
+            <DialogTrigger asChild>
+                <Button variant="link" className="mt-4">
+                    <Eye className="mr-2 h-4 w-4" /> Quick View: Student Analytics Snapshot
                 </Button>
-              </DialogTrigger>
-            </CardContent>
-          </Card>
-          <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
             <DialogHeader>
-              <DialogTitle className="font-headline text-2xl">Student Analytics Overview</DialogTitle>
-              <DialogDescription>
-                Detailed breakdown of student skills, placement status, and progress.
-              </DialogDescription>
+                <DialogTitle className="font-headline text-2xl">Student Analytics Snapshot</DialogTitle>
+                <DialogDescription>
+                A quick overview of student skills, placement, and progress. For detailed analytics, visit the Institutional Analytics page.
+                </DialogDescription>
             </DialogHeader>
             <ScrollArea className="h-[60vh] mt-4">
-              <Table>
+                <Table>
                 <TableHeader>
-                  <TableRow>
+                    <TableRow>
                     <TableHead className="w-[200px] font-semibold">Student Name</TableHead>
                     <TableHead className="font-semibold">Skills Learning</TableHead>
                     <TableHead className="font-semibold">Placement Status</TableHead>
                     <TableHead className="w-[150px] font-semibold">Overall Progress</TableHead>
-                  </TableRow>
+                    </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dummyStudentAnalytics.map((student) => (
+                    {dummyStudentAnalytics.map((student) => (
                     <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell>
+                        <TableCell className="font-medium">{student.name}</TableCell>
+                        <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {student.skills.map(skill => <Badge key={skill} variant="secondary">{skill}</Badge>)}
+                            {student.skills.map(skill => <Badge key={skill} variant="secondary">{skill}</Badge>)}
                         </div>
-                      </TableCell>
-                      <TableCell>{student.placementStatus}</TableCell>
-                      <TableCell>
+                        </TableCell>
+                        <TableCell>{student.placementStatus}</TableCell>
+                        <TableCell>
                         <div className="flex items-center gap-2">
-                          <Progress value={student.progress} className="h-2" />
-                          <span className="text-xs text-muted-foreground">{student.progress}%</span>
+                            <Progress value={student.progress} className="h-2" />
+                            <span className="text-xs text-muted-foreground">{student.progress}%</span>
                         </div>
-                      </TableCell>
+                        </TableCell>
                     </TableRow>
-                  ))}
+                    ))}
                 </TableBody>
-              </Table>
+                </Table>
             </ScrollArea>
-            {/* Optional: DialogFooter if needed for actions */}
-          </DialogContent>
+            </DialogContent>
         </Dialog>
 
-        <FeatureCard
-          icon={<Settings className="h-8 w-8 text-primary" />}
-          title="Platform Settings"
-          description="Configure institution-specific settings and integrations."
-        />
-      </div>
        <Card className="mt-8">
         <CardHeader>
-            <CardTitle>Placeholder Content</CardTitle>
+            <CardTitle>Main Dashboard Hub</CardTitle>
         </CardHeader>
         <CardContent>
             <p className="text-muted-foreground font-body">
-                This page is a placeholder for the Polytechnic Admin Dashboard. 
-                More specific functionalities and data visualizations will be added here in future iterations.
+                This page serves as the main entry point for the Polytechnic Admin. 
+                Use the cards above or the header navigation to access specific sections like Manage Students, Institutional Analytics, or Platform Settings.
             </p>
         </CardContent>
        </Card>
     </div>
-  );
-}
-
-interface FeatureCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}
-
-function FeatureCard({ icon, title, description }: FeatureCardProps) {
-  return (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader className="flex flex-row items-center gap-4 pb-2">
-        {icon}
-        <CardTitle className="text-xl font-semibold font-headline">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground font-body">{description}</p>
-      </CardContent>
-    </Card>
   );
 }
