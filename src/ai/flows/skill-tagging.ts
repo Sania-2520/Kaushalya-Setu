@@ -1,6 +1,14 @@
+
 // SkillTagging flow for automatically identifying and tagging skills from project descriptions and uploads.
 
 'use server';
+/**
+ * @fileOverview A Genkit flow for automatically identifying and tagging skills from project descriptions.
+ *
+ * - identifySkills - Extracts skills from a project description.
+ * - SkillTaggingInput - Input type for the identifySkills flow.
+ * - SkillTaggingOutput - Output type for the identifySkills flow.
+ */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';

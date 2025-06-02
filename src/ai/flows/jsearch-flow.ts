@@ -4,8 +4,9 @@
  * @fileOverview A Genkit flow to act as a proxy for the JSearch API.
  *
  * - searchJobs - Fetches job listings from JSearch API.
- * - JSearchInput - Input schema for the searchJobs flow.
- * - JSearchOutput - Output schema for the searchJobs flow.
+ * - JSearchInput - Input schema type for the searchJobs flow.
+ * - JSearchOutput - Output schema type for the searchJobs flow.
+ * - JSearchJob - Type for an individual job object from JSearch API.
  */
 
 import { ai } from '@/ai/genkit';
@@ -90,10 +91,7 @@ const jsearchApiFlow = ai.defineFlow(
 
       const data = await response.json();
       
-      // JSearch often returns about 20 items per request with num_pages=1
       const itemsPerPage = data.data?.length || 20; 
-      // The 'total' or 'estimated_total_results' field in JSearch can be unreliable.
-      // A simple pagination strategy: if 20 items are returned, assume there might be more.
       const totalJobs = data.estimated_total_results || (data.data?.length || 0) ; 
       const totalPages = data.data?.length > 0 ? page + (data.data.length === itemsPerPage ? 1: 0) : page; 
 
@@ -104,7 +102,6 @@ const jsearchApiFlow = ai.defineFlow(
       };
     } catch (error) {
       console.error('Error in jsearchApiFlow:', error);
-      // Re-throw for the frontend to handle display of the error
       throw new Error(`JSearch API request failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }

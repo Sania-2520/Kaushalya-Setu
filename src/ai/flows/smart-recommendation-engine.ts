@@ -25,6 +25,7 @@ const RecommendedOpportunitySchema = z.object({
   description: z.string().describe('A brief description of the job or internship.'),
   relevanceScore: z.number().describe('A score indicating how relevant the opportunity is to the student (0-1).'),
 });
+// Type for RecommendedOpportunitySchema is inferred as part of RecommendOpportunitiesOutput below.
 
 const RecommendOpportunitiesOutputSchema = z.object({
   recommendations: z.array(RecommendedOpportunitySchema).describe('A list of recommended job or internship opportunities.'),
