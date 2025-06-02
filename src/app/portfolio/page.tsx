@@ -164,7 +164,7 @@ export default function PortfolioPage() {
       <Card className="overflow-hidden shadow-lg">
         <div className="bg-gradient-to-r from-primary to-accent h-32 md:h-40 relative">
             <Image 
-                src="https://placehold.co/1200x300.png?text=Profile+Banner" 
+                src="https://images.unsplash.com/photo-1636690498207-d7b393423b9a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxOHx8cHJvZmlsZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzQ4ODk2MTEwfDA&ixlib=rb-4.1.0&q=80&w=1080" 
                 alt="Profile Banner"
                 layout="fill"
                 objectFit="cover"
@@ -355,5 +355,3 @@ export default function PortfolioPage() {
     </div>
   );
 }
-
-    
