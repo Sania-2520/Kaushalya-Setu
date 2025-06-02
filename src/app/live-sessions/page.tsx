@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -41,7 +42,7 @@ interface QnAItem {
   answerTimestamp?: Date;
 }
 
-const initialSessions: Session[] = [
+const generateInitialSessions = (): Session[] => [
   {
     id: "1",
     title: "Mastering React Hooks",
@@ -90,14 +91,14 @@ const initialSessions: Session[] = [
   },
 ];
 
-const initialQnA: QnAItem[] = [
+const generateInitialQnA = (): QnAItem[] => [
     {
         id: 'q1',
         user: 'Student A',
         question: 'What is the best way to manage state in large React applications?',
         timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
         answer: 'Consider using context API for simpler cases, or Redux/Zustand for more complex state management.',
-        answeredBy: 'Jane Doe',
+        answeredBy: 'Jane Doe', // Should match a speaker for consistency
         answerTimestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
     },
     {
@@ -110,11 +111,20 @@ const initialQnA: QnAItem[] = [
 
 
 export default function LiveSessionsPage() {
-  const [sessions, setSessions] = useState<Session[]>(initialSessions);
-  const [selectedSession, setSelectedSession] = useState<Session | null>(sessions[0] || null);
-  const [qnaItems, setQnaItems] = useState<QnAItem[]>(initialQnA);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [qnaItems, setQnaItems] = useState<QnAItem[]>([]);
   const [newQuestion, setNewQuestion] = useState("");
   const [userRating, setUserRating] = useState(0);
+
+  useEffect(() => {
+    const initialSessionsData = generateInitialSessions();
+    setSessions(initialSessionsData);
+    setQnaItems(generateInitialQnA());
+    if (initialSessionsData.length > 0) {
+      setSelectedSession(initialSessionsData[0]);
+    }
+  }, []);
 
   const upcomingSessions = sessions.filter(s => s.dateTime > new Date() && !s.isLive).sort((a,b) => a.dateTime.getTime() - b.dateTime.getTime());
   const pastSessions = sessions.filter(s => s.dateTime <= new Date() && !s.isLive).sort((a,b) => b.dateTime.getTime() - a.dateTime.getTime());
@@ -138,9 +148,19 @@ export default function LiveSessionsPage() {
     // Simulate submitting rating
     if(selectedSession){
         // This would typically be an API call to update the session's average rating
-        console.log(`Rated session ${selectedSession.id} with ${rating} stars.`);
-        // For demo, update local state (not ideal for real app)
-        setSelectedSession(prev => prev ? {...prev, rating: ((prev.rating || 0) * (prev.totalRatings || 0) + rating) / ((prev.totalRatings || 0) + 1), totalRatings: (prev.totalRatings || 0) + 1} : null);
+        const newTotalRatings = (selectedSession.totalRatings || 0) + 1;
+        const newAverageRating = ((selectedSession.rating || 0) * (selectedSession.totalRatings || 0) + rating) / newTotalRatings;
+        
+        setSelectedSession(prev => prev ? {
+            ...prev, 
+            rating: newAverageRating, 
+            totalRatings: newTotalRatings
+        } : null);
+        
+        // Also update in the main sessions list if needed for persistence across selections
+        setSessions(prevSessions => prevSessions.map(s => 
+            s.id === selectedSession.id ? {...s, rating: newAverageRating, totalRatings: newTotalRatings} : s
+        ));
     }
   };
 
@@ -236,7 +256,7 @@ export default function LiveSessionsPage() {
                     </p>
                 ) : <p className="text-xs text-muted-foreground mt-1">Not rated yet.</p>}
               </div>
-              {selectedSession.attendees && <p className="text-sm text-muted-foreground">{selectedSession.attendees} attendees</p>}
+              {selectedSession.attendees && selectedSession.attendees > 0 && <p className="text-sm text-muted-foreground">{selectedSession.attendees} attendees</p>}
             </CardFooter>
 
             {/* Q&A Section */}
@@ -270,11 +290,11 @@ export default function LiveSessionsPage() {
                                 <div className="mt-2 ml-6 pl-5 border-l border-primary/50">
                                      <div className="flex items-start space-x-3">
                                         <Avatar className="h-8 w-8 mt-1">
-                                            <AvatarImage src={selectedSession.speakerAvatar} data-ai-hint="speaker avatar" />
-                                            <AvatarFallback>{(q.answeredBy || selectedSession.speaker).substring(0,1)}</AvatarFallback>
+                                            <AvatarImage src={(selectedSession?.speakerAvatar && q.answeredBy === selectedSession.speaker) ? selectedSession.speakerAvatar : `https://placehold.co/40x40.png?text=${(q.answeredBy || 'S').substring(0,1)}`} data-ai-hint="speaker avatar" />
+                                            <AvatarFallback>{(q.answeredBy || selectedSession?.speaker || 'S').substring(0,1)}</AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <p className="font-semibold text-sm text-primary">{q.answeredBy || selectedSession.speaker} (Speaker) <span className="text-xs text-muted-foreground font-normal ml-1">{q.answerTimestamp?.toLocaleTimeString()}</span></p>
+                                            <p className="font-semibold text-sm text-primary">{q.answeredBy || selectedSession?.speaker} (Speaker) <span className="text-xs text-muted-foreground font-normal ml-1">{q.answerTimestamp?.toLocaleTimeString()}</span></p>
                                             <p className="text-foreground/80 text-sm mt-0.5">{q.answer}</p>
                                         </div>
                                     </div>
@@ -331,3 +351,5 @@ function SessionListItem({ session, onSelect, isSelected }: SessionListItemProps
   )
 }
 
+
+    
