@@ -30,7 +30,7 @@ const initialProjects: Project[] = [
     id: "1",
     title: "E-commerce Website",
     description: "Developed a full-stack e-commerce platform using React, Node.js, and MongoDB. Implemented features like product catalog, shopping cart, user authentication, and payment gateway integration.",
-    imageUrl: "https://placehold.co/600x400.png?text=E-commerce+Project",
+    imageUrl: "https://images.unsplash.com/photo-1474631245212-32dc3c8310c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxlJTIwY29tbWVyY2V8ZW58MHx8fHwxNzQ4ODk2MjYwfDA&ixlib=rb-4.1.0&q=80&w=1080",
     projectUrl: "https://example.com/ecommerce",
     skills: ["React", "Node.js", "MongoDB", "JavaScript", "HTML", "CSS"],
     uploadedAt: new Date(2023, 5, 15)
