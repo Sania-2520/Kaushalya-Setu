@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route, TrendingUp, Star, BookOpenText, Sparkles as SparklesIcon } from 'lucide-react';
+import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route, TrendingUp, Star, BookOpenText, Sparkles as SparklesIcon, Target, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
@@ -25,6 +25,12 @@ const features = [
     link: '/portfolio',
   },
   {
+    icon: <SparklesIcon className="h-10 w-10 text-primary" />,
+    title: 'AI Resume Analyzer',
+    description: 'Get instant, AI-powered feedback on your resume with a score and actionable improvement suggestions.',
+    link: '/resume-reviewer',
+  },
+  {
     icon: <Award className="h-10 w-10 text-primary" />,
     title: 'Micro-Certifications',
     description: 'Earn verifiable digital skill badges through short courses and in-app assessments.',
@@ -35,6 +41,12 @@ const features = [
     title: 'AI-Powered Skill Tagging',
     description: 'Automatically identify and tag relevant skills from your projects to enhance your portfolio.',
     link: '/portfolio', 
+  },
+   {
+    icon: <Target className="h-10 w-10 text-primary" />,
+    title: 'Goals Management',
+    description: 'Set, track, and achieve your academic and personal goals with smart suggestions.',
+    link: '/goals',
   },
   {
     icon: <Lightbulb className="h-10 w-10 text-primary" />,
@@ -50,7 +62,7 @@ const features = [
   },
   {
     icon: <Route className="h-10 w-10 text-primary" />,
-    title: 'Course Progress Tracker',
+    title: 'My Progress Tracker',
     description: 'Visualize your learning journey with a map-like structure for courses and modules.',
     link: '/course-progress',
   },
@@ -123,18 +135,20 @@ export default function HomePage() {
 
       <section id="features-section" className="w-full py-12 md:py-24 lg:py-32">
         <div className="container px-4 md:px-6">
-          <h2 className="text-3xl font-bold tracking-tighter text-center sm:text-4xl md:text-5xl font-headline">
-            Unlock Your Potential
-          </h2>
-          <p className="mx-auto max-w-[700px] text-foreground/70 md:text-xl text-center mt-4 mb-12 font-body">
-            Discover a platform designed to certify your skills, build your portfolio, and connect you with the right opportunities.
-          </p>
+          <div className="text-center">
+             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
+                Unlock Your Potential
+             </h2>
+             <p className="mx-auto max-w-[700px] text-foreground/70 md:text-xl mt-4 mb-12 font-body">
+                Discover a platform designed to certify your skills, build your portfolio, and connect you with the right opportunities.
+             </p>
+          </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
               <Card key={feature.title} className="flex flex-col transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
                 <CardHeader className="items-center">
                   {feature.icon}
-                  <CardTitle className="mt-4 text-xl font-semibold font-headline">{feature.title}</CardTitle>
+                  <CardTitle className="mt-4 text-xl font-semibold font-headline text-center">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-foreground/70 text-center font-body">{feature.description}</p>
@@ -150,14 +164,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="progress-tracker-section" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20">
+      <section id="progress-insights-section" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20">
         <div className="container px-4 md:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
               Sample Progress Insights
             </h2>
             <p className="mx-auto max-w-[700px] text-foreground/70 md:text-xl mt-4 font-body">
-             Here's a glimpse of how you can visualize your learning journey. For your personalized map and detailed tracking, visit the Course Progress page.
+             Here's a glimpse of how you can visualize your learning journey. For your personalized map and detailed tracking, visit the My Progress page.
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -184,7 +198,6 @@ export default function HomePage() {
                       cursor={false}
                       content={<ChartTooltipContent indicator="dot" />}
                     />
-                    {/* <CartesianGrid strokeDasharray="3 3" /> */}
                     <Bar dataKey="tasksCompleted" fill="var(--color-tasksCompleted)" radius={4} />
                     <Bar dataKey="hoursStudied" fill="var(--color-hoursStudied)" radius={4} />
                   </BarChart>
@@ -252,5 +265,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

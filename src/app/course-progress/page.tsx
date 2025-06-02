@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CheckCircle2, Circle, Milestone, Route, TrendingUp, Star } from "lucide-react";
+import { CheckCircle2, Circle, Milestone, Route, TrendingUp, Star, BarChart2, PieChartIcon, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -123,15 +123,12 @@ export default function CourseProgressPage() {
   const [currentMotivationalMessage, setCurrentMotivationalMessage] = useState("");
 
   useEffect(() => {
-    // Simulate fetching course data
     const updatedModules = initialCourseData.modules.map(module => ({
       ...module,
       isCompleted: module.lessons.every(lesson => lesson.isCompleted)
     }));
     setCourse({...initialCourseData, modules: updatedModules});
-
-    // Simulate overall progress for the daily insights section
-    setOverallProgress(72); // Example static value
+    setOverallProgress(72); 
     setCurrentMotivationalMessage(motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]);
   }, []);
 
@@ -154,19 +151,15 @@ export default function CourseProgressPage() {
       </div>
 
       <div className="relative pl-6">
-        {/* Vertical line for the main path */}
         <div className="absolute left-9 top-0 bottom-0 w-1 bg-border rounded-full hidden sm:block"></div>
-
         {course.modules.map((module, moduleIndex) => (
           <div key={module.id} className="relative mb-12">
-            {/* Module Node on the path */}
             <div className={cn(
                 "absolute left-9 top-1/2 -translate-y-1/2 -translate-x-1/2 h-6 w-6 rounded-full border-2 flex items-center justify-center hidden sm:flex",
                 module.isCompleted ? "bg-green-500 border-green-600" : "bg-muted border-border"
             )}>
                 {module.isCompleted && <CheckCircle2 className="h-3 w-3 text-white"/>}
             </div>
-            
             <Card className={cn(
                 "ml-0 sm:ml-16 transform transition-all hover:shadow-xl",
                 module.isCompleted ? "border-green-500 border-2" : "border-border",
@@ -195,7 +188,7 @@ export default function CourseProgressPage() {
                       <span className={cn(
                         "font-body",
                         lesson.isCompleted ? "text-foreground" : "text-muted-foreground",
-                        !module.isCompleted && !lesson.isCompleted && module.lessons.findIndex(l => !l.isCompleted) !== module.lessons.indexOf(lesson) ? "opacity-70" : "opacity-100" // Dim lessons after the current one if module not complete
+                        !module.isCompleted && !lesson.isCompleted && module.lessons.findIndex(l => !l.isCompleted) !== module.lessons.indexOf(lesson) ? "opacity-70" : "opacity-100"
                       )}>
                         {lesson.title}
                       </span>
@@ -222,10 +215,38 @@ export default function CourseProgressPage() {
         </CardContent>
        </Card>
 
-       {/* Daily Progress Insights Section */}
         <section className="space-y-6 pt-8 border-t">
-            <h2 className="text-2xl font-semibold font-headline text-center">Your Daily Learning Insights</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <h2 className="text-2xl font-semibold font-headline text-center">Your Learning Insights</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center"><BarChart2 className="mr-2 h-5 w-5 text-primary" />Certifications Overview</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">Detailed chart showing your earned certifications by domain will appear here soon.</p>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline flex items-center"><PieChartIcon className="mr-2 h-5 w-5 text-accent" />Goals At a Glance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">Visual summary of your completed vs. pending goals will be displayed here.</p>
+                    </CardContent>
+                </Card>
+            </div>
+             <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center"><Activity className="mr-2 h-5 w-5 text-green-500" />Skill Development</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">A radar chart or similar visualization tracking your skill growth over time is planned for this section.</p>
+                </CardContent>
+            </Card>
+
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start pt-6 mt-6 border-t">
                 <Card className="lg:col-span-2 shadow-lg">
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center">
@@ -283,5 +304,3 @@ export default function CourseProgressPage() {
     </div>
   );
 }
-
-    

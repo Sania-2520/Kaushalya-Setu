@@ -15,6 +15,9 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
   const [selectedRole, setSelectedRole] = useState<string>("");
+  const [polytechnicName, setPolytechnicName] = useState<string>("");
+  const [courseDepartment, setCourseDepartment] = useState<string>("");
+  const [semester, setSemester] = useState<string>("");
   const router = useRouter();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -24,6 +27,7 @@ export default function SignupPage() {
   }, []);
 
   const handleSignup = () => {
+    // Basic validation
     if (!selectedRole) {
       toast({
         title: "Role not selected",
@@ -32,9 +36,24 @@ export default function SignupPage() {
       });
       return;
     }
+    if (selectedRole === "student" && (!polytechnicName || !courseDepartment || !semester)) {
+         toast({
+            title: "Missing Information",
+            description: "Please fill in Polytechnic Name, Course/Department, and Semester for student role.",
+            variant: "destructive",
+         });
+         return;
+    }
+
 
     if (isClient) {
       localStorage.setItem('isLoggedIn', 'true');
+      // Store additional info conceptually for now
+      localStorage.setItem('userRole', selectedRole);
+      if (selectedRole === 'student') {
+        localStorage.setItem('polytechnicName', polytechnicName);
+        localStorage.setItem('userName', (document.getElementById('fullName') as HTMLInputElement)?.value || 'Student User');
+      }
     }
 
     toast({
@@ -42,14 +61,15 @@ export default function SignupPage() {
       description: `Welcome! Redirecting you to the ${selectedRole} portal...`,
     });
 
+    // Redirect based on role
     if (selectedRole === "student") {
-      router.push("/portfolio");
+      router.push("/portfolio"); // Or student dashboard if different
     } else if (selectedRole === "industry") {
-      router.push("/jobs");
+      router.push("/jobs"); // Or industry partner dashboard
     } else if (selectedRole === "polytechnic") {
       router.push("/admin-dashboard");
     } else {
-      router.push("/");
+      router.push("/"); // Fallback
     }
   };
 
@@ -93,6 +113,33 @@ export default function SignupPage() {
               </SelectContent>
             </Select>
           </div>
+
+          {selectedRole === 'student' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="polytechnicName">Polytechnic Name</Label>
+                <Input id="polytechnicName" type="text" placeholder="Your polytechnic" value={polytechnicName} onChange={(e) => setPolytechnicName(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="courseDepartment">Course/Department</Label>
+                <Input id="courseDepartment" type="text" placeholder="e.g., Computer Science" value={courseDepartment} onChange={(e) => setCourseDepartment(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="semester">Semester</Label>
+                <Select value={semester} onValueChange={setSemester}>
+                    <SelectTrigger id="semester">
+                        <SelectValue placeholder="Select semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                            <SelectItem key={sem} value={sem.toString()}>{sem.toString()}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button className="w-full" onClick={handleSignup}>

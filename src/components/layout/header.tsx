@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText } from 'lucide-react';
+import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Target, Sparkles, GraduationCap } from 'lucide-react';
 import Logo from '@/components/shared/logo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -12,11 +12,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const navLinks = [
-  { href: '/', label: 'Home', icon: <BookOpen className="h-5 w-5" /> },
+  { href: '/', label: 'Home', icon: <GraduationCap className="h-5 w-5" /> }, // Changed Icon
   { href: '/portfolio', label: 'Portfolio', icon: <Briefcase className="h-5 w-5" /> },
+  { href: '/resume-reviewer', label: 'Resume Reviewer', icon: <Sparkles className="h-5 w-5" /> },
   { href: '/jobs', label: 'Jobs', icon: <Users className="h-5 w-5" /> },
+  { href: '/goals', label: 'Goals', icon: <Target className="h-5 w-5" /> },
   { href: '/live-sessions', label: 'Live Sessions', icon: <MessageSquare className="h-5 w-5" /> },
-  { href: '/course-progress', label: 'Course Progress', icon: <Route className="h-5 w-5" /> },
+  { href: '/course-progress', label: 'My Progress', icon: <Route className="h-5 w-5" /> },
   { href: '/knowledge-base', label: 'Knowledge Base', icon: <BookOpenText className="h-5 w-5" /> },
 ];
 
@@ -25,6 +27,9 @@ export default function Header() {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("My Account");
+  const [polytechnicName, setPolytechnicName] = useState<string | null>(null);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -34,12 +39,22 @@ export default function Header() {
     if (isClient) {
       const userLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
       setLoggedIn(userLoggedIn);
+      if (userLoggedIn) {
+        setUserName(localStorage.getItem('userName') || "Student User");
+        setPolytechnicName(localStorage.getItem('polytechnicName'));
+      } else {
+        setUserName("My Account");
+        setPolytechnicName(null);
+      }
     }
   }, [pathname, isClient]);
 
   const handleLogout = () => {
     if (isClient) {
       localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('polytechnicName');
       setLoggedIn(false);
       router.push('/login');
     }
@@ -55,13 +70,13 @@ export default function Header() {
           </span>
         </Link>
         
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-4 text-sm font-medium">
           {navLinks.map((link) => (
             <Link
               key={link.label}
               href={link.href}
               className={cn(
-                "transition-colors hover:text-primary",
+                "transition-colors hover:text-primary text-xs lg:text-sm",
                 pathname === link.href ? "text-primary font-semibold" : "text-foreground/70"
               )}
             >
@@ -76,16 +91,16 @@ export default function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src="https://placehold.co/40x40.png?text=U" alt="User Avatar" data-ai-hint="user avatar" />
-                    <AvatarFallback>U</AvatarFallback>
+                    <AvatarImage src="https://placehold.co/40x40.png?text=U" alt="User Avatar" data-ai-hint="user avatar"/>
+                    <AvatarFallback>{userName.substring(0,1).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">My Account</p>
-                    {/* <p className="text-xs leading-none text-muted-foreground">user@example.com</p> */}
+                    <p className="text-sm font-medium leading-none">{userName}</p>
+                    {polytechnicName && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -170,5 +185,3 @@ export default function Header() {
     </header>
   );
 }
-
-    
