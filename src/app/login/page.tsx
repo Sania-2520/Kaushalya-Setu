@@ -38,12 +38,10 @@ function LoginComponent() {
       return;
     }
     
-    // Simulate form validation and successful login
     if (isClient) {
       localStorage.setItem('isLoggedIn', 'true');
-      const userRoleToStore = role || "student"; // Default to student if no role in query
+      const userRoleToStore = role || "student"; 
       localStorage.setItem('userRole', userRoleToStore);
-      // Simulate storing a generic username if not already set
       if (!localStorage.getItem('userName')) {
         localStorage.setItem('userName', email.split('@')[0] || "User");
       }
@@ -58,13 +56,13 @@ function LoginComponent() {
           router.push("/portfolio");
           break;
         case "industry":
-          router.push("/jobs"); // Or industry dashboard
+          router.push("/jobs"); 
           break;
         case "polytechnic":
           router.push("/admin-dashboard");
           break;
         default:
-          router.push("/select-portal"); // Fallback if role is unknown or not set
+          router.push("/select-portal"); 
       }
     }
   };

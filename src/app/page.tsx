@@ -124,7 +124,7 @@ export default function HomePage() {
           </p>
           <div className="mt-8 space-x-0 space-y-4 sm:space-y-0 sm:space-x-4 flex flex-col sm:flex-row justify-center items-center">
             <Button size="lg" asChild>
-              <Link href="/signup">Get Started</Link>
+              <Link href="/role-select">Get Started</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/#features-section">Explore Opportunities</Link>

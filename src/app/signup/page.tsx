@@ -40,7 +40,6 @@ function SignupComponent() {
   }, [searchParams]);
 
   const handleSignup = () => {
-    // Basic validation
     if (!fullName || !email || !password || !confirmPassword) {
       toast({ title: "Missing Fields", description: "Please fill in all required fields.", variant: "destructive" });
       return;
@@ -176,7 +175,6 @@ function SignupComponent() {
   );
 }
 
-
 export default function SignupPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -184,4 +182,3 @@ export default function SignupPage() {
     </Suspense>
   )
 }
-
