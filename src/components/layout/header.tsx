@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Target, Sparkles, GraduationCap } from 'lucide-react';
+import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Target, Sparkles, GraduationCap, BarChart3, LayoutDashboard } from 'lucide-react';
 import Logo from '@/components/shared/logo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -11,8 +11,8 @@ import { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const navLinks = [
-  { href: '/', label: 'Home', icon: <GraduationCap className="h-5 w-5" /> }, // Changed Icon
+const defaultNavLinks = [
+  { href: '/', label: 'Home', icon: <GraduationCap className="h-5 w-5" /> },
   { href: '/portfolio', label: 'Portfolio', icon: <Briefcase className="h-5 w-5" /> },
   { href: '/resume-reviewer', label: 'Resume Reviewer', icon: <Sparkles className="h-5 w-5" /> },
   { href: '/jobs', label: 'Jobs', icon: <Users className="h-5 w-5" /> },
@@ -22,6 +22,12 @@ const navLinks = [
   { href: '/knowledge-base', label: 'Knowledge Base', icon: <BookOpenText className="h-5 w-5" /> },
 ];
 
+const adminNavLinks = [
+  { href: '/admin-dashboard', label: 'Manage Students', icon: <Users className="h-5 w-5" /> },
+  { href: '/admin-dashboard', label: 'Institutional Analytics', icon: <BarChart3 className="h-5 w-5" /> },
+  { href: '/admin-dashboard', label: 'Platform Settings', icon: <Settings className="h-5 w-5" /> },
+];
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -29,6 +35,7 @@ export default function Header() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [userName, setUserName] = useState("My Account");
   const [polytechnicName, setPolytechnicName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -40,11 +47,13 @@ export default function Header() {
       const userLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
       setLoggedIn(userLoggedIn);
       if (userLoggedIn) {
-        setUserName(localStorage.getItem('userName') || "Student User");
+        setUserName(localStorage.getItem('userName') || "User");
         setPolytechnicName(localStorage.getItem('polytechnicName'));
+        setUserRole(localStorage.getItem('userRole'));
       } else {
         setUserName("My Account");
         setPolytechnicName(null);
+        setUserRole(null);
       }
     }
   }, [pathname, isClient]);
@@ -56,9 +65,12 @@ export default function Header() {
       localStorage.removeItem('userName');
       localStorage.removeItem('polytechnicName');
       setLoggedIn(false);
+      setUserRole(null);
       router.push('/login');
     }
   };
+
+  const currentNavLinks = loggedIn && userRole === 'polytechnicAdmin' ? adminNavLinks : defaultNavLinks;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -71,7 +83,7 @@ export default function Header() {
         </Link>
         
         <nav className="hidden md:flex items-center space-x-4 text-sm font-medium">
-          {navLinks.map((link) => (
+          {currentNavLinks.map((link) => (
             <Link
               key={link.label}
               href={link.href}
@@ -100,14 +112,17 @@ export default function Header() {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{userName}</p>
-                    {polytechnicName && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
+                    {polytechnicName && userRole !== 'polytechnicAdmin' && <p className="text-xs leading-none text-muted-foreground">{polytechnicName}</p>}
+                    {userRole === 'polytechnicAdmin' && <p className="text-xs leading-none text-muted-foreground">Admin Portal</p>}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push('/portfolio')}>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
+                {userRole !== 'polytechnicAdmin' && (
+                  <DropdownMenuItem onClick={() => router.push('/portfolio')}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => router.push('/account-settings')}>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
@@ -122,12 +137,12 @@ export default function Header() {
           ) : (
             <>
               <Button variant="outline" size="sm" asChild className="hidden sm:flex">
-                <Link href="/login">
+                <Link href="/role-select">
                   <LogIn className="mr-2 h-4 w-4" /> Login
                 </Link>
               </Button>
               <Button size="sm" asChild className="hidden sm:flex">
-                <Link href="/signup">
+                <Link href="/role-select">
                   Sign Up
                 </Link>
               </Button>
@@ -143,7 +158,7 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <nav className="flex flex-col space-y-4 mt-8">
-                {navLinks.map((link) => (
+                {currentNavLinks.map((link) => (
                   <Link
                     key={link.label} 
                     href={link.href}
@@ -160,12 +175,12 @@ export default function Header() {
                   {!loggedIn && (
                     <>
                       <Button variant="outline" asChild className="w-full justify-start mb-2">
-                         <Link href="/login">
+                         <Link href="/role-select">
                             <LogIn className="mr-2 h-4 w-4" /> Login
                          </Link>
                       </Button>
                       <Button asChild className="w-full justify-start">
-                        <Link href="/signup">
+                        <Link href="/role-select">
                            Sign Up
                         </Link>
                       </Button>
@@ -185,3 +200,4 @@ export default function Header() {
     </header>
   );
 }
+
