@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const kpiData = [
   { title: "Total Students Enrolled", value: "1,250", change: "+50 last month", trend: <TrendingUp className="h-5 w-5 text-green-500" />, icon: <Users2 className="h-8 w-8 text-primary" /> },
