@@ -7,12 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { UploadCloud, Loader2, FileText, Sparkles, AlertCircle, Download, ScanSearch, FileSignature } from "lucide-react";
+import { UploadCloud, Loader2, Sparkles, AlertCircle, Download, ScanSearch, FileSignature, CheckCircle, Info, ThumbsUp, XCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { getResumeFeedback, ResumeFeedbackInput, ResumeFeedbackOutput } from '@/ai/flows/resume-feedback-flow';
+import { getResumeFeedback, ResumeFeedbackInput, ResumeFeedbackOutput, SectionAnalysis } from '@/ai/flows/resume-feedback-flow';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -21,6 +24,7 @@ const ACCEPTED_FILE_TYPES = ['application/pdf'];
 export default function ResumeAnalyzerPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [targetRoleOrDomain, setTargetRoleOrDomain] = useState<string>("");
   const [feedbackResult, setFeedbackResult] = useState<ResumeFeedbackOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -65,38 +69,49 @@ export default function ResumeAnalyzerPage() {
     setFeedbackResult(null);
 
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(resumeFile);
-      reader.onloadend = async () => {
-        const base64data = reader.result as string;
-        const input: ResumeFeedbackInput = { resumeDataUri: base64data };
-        const result: ResumeFeedbackOutput = await getResumeFeedback(input);
-        
-        if (result && result.feedback) {
-          setFeedbackResult(result);
-          toast({ title: "Analysis Complete!", description: "Your resume feedback is ready." });
-        } else {
-          throw new Error("AI did not return valid feedback.");
-        }
-        setIsLoading(false);
+      const base64data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(resumeFile);
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = (error) => reject(error);
+      });
+
+      const input: ResumeFeedbackInput = { 
+        resumeDataUri: base64data, 
+        targetRoleOrDomain: targetRoleOrDomain || undefined 
       };
-      reader.onerror = (error) => {
-        console.error("FileReader error:", error);
-        toast({ title: "File Reading Error", description: "Could not read the resume file.", variant: "destructive" });
-        setIsLoading(false);
-      };
+      const result: ResumeFeedbackOutput = await getResumeFeedback(input);
+
+      setFeedbackResult(result);
+      toast({ title: "Analysis Complete!", description: "Your resume feedback is ready." });
+
     } catch (error) {
       console.error("Resume analysis failed:", error);
-      toast({ title: "Analysis Failed", description: `Could not analyze resume. ${error instanceof Error ? error.message : 'Please try again.'}`, variant: "destructive" });
+      toast({ 
+        title: "Analysis Failed", 
+        description: `Could not analyze resume. ${error instanceof Error ? error.message : 'An unknown error occurred. Check console for details.'}`, 
+        variant: "destructive" 
+      });
+      setFeedbackResult(null);
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const getScoreColor = (score: number): "bg-green-500" | "bg-yellow-500" | "bg-red-500" | "bg-primary" => {
-    if (score >= 80) return "bg-green-500";
-    if (score >= 60) return "bg-yellow-500";
-    return "bg-red-500";
+  const getScoreColor = (score: number, maxScore: number = 100): "text-green-600" | "text-yellow-600" | "text-red-600" => {
+    const percentage = (score / maxScore) * 100;
+    if (percentage >= 80) return "text-green-600";
+    if (percentage >= 60) return "text-yellow-600";
+    return "text-red-600";
   };
+  
+  const getProgressColorClass = (score: number, maxScore: number = 100): string => {
+    const percentage = (score / maxScore) * 100;
+    if (percentage >= 80) return "[&>div]:bg-green-500";
+    if (percentage >= 60) return "[&>div]:bg-yellow-500";
+    return "[&>div]:bg-red-500";
+  };
+
 
   return (
     <div className="space-y-8">
@@ -113,13 +128,13 @@ export default function ResumeAnalyzerPage() {
                 </div>
             </div>
         </CardHeader>
-        <CardContent>
+         <CardContent>
             <p className="font-semibold mb-1">Our tool checks for:</p>
             <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground mb-4">
-                <li>Missing sections (like projects, skills, achievements)</li>
-                <li>Keyword density (relevant tech skills, action verbs)</li>
-                <li>Resume structure and formatting</li>
-                <li>Role alignment and clarity</li>
+                <li>Common sections (Education, Experience, Projects, Skills, Certifications, etc.)</li>
+                <li>Keyword relevance (technical skills, action verbs, alignment with target role)</li>
+                <li>Resume structure, formatting, and clarity</li>
+                <li>ATS (Applicant Tracking System) friendliness</li>
             </ul>
             <p className="text-sm font-semibold text-primary">
                 🔍 Just upload your resume and get instant insights — faster than a career counselor!
@@ -131,7 +146,7 @@ export default function ResumeAnalyzerPage() {
         <CardHeader>
           <CardTitle className="font-headline">Upload Your Resume</CardTitle>
           <CardDescription>
-            Provide your resume in PDF format (max {MAX_FILE_SIZE_MB}MB).
+            Provide your resume in PDF format (max {MAX_FILE_SIZE_MB}MB). Optionally, specify a target role for more tailored feedback.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -144,6 +159,15 @@ export default function ResumeAnalyzerPage() {
                 </Button>
                 <Input id="resume-input-analyzer-page" type="file" accept=".pdf" onChange={handleFileChange} className="hidden" />
             </div>
+          </div>
+           <div className="space-y-2">
+            <Label htmlFor="targetRoleOrDomain">Target Job Role or Domain (Optional)</Label>
+            <Input 
+              id="targetRoleOrDomain" 
+              value={targetRoleOrDomain} 
+              onChange={(e) => setTargetRoleOrDomain(e.target.value)} 
+              placeholder="e.g., Software Engineer, Data Analyst" 
+            />
           </div>
           <Button onClick={handleAnalyzeResume} disabled={isLoading || !resumeFile} className="w-full">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
@@ -160,61 +184,126 @@ export default function ResumeAnalyzerPage() {
       )}
 
       {feedbackResult && !isLoading && (
-        <Card className="shadow-xl">
-          <CardHeader>
-            <CardTitle className="font-headline text-2xl">Your Resume Analysis</CardTitle>
+        <Card className="shadow-xl mt-8">
+          <CardHeader className="pb-4">
+            <CardTitle className="font-headline text-2xl flex items-center gap-2">
+                <FileText className="h-7 w-7 text-primary"/> Your Resume Analysis
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
               <h3 className="text-xl font-semibold mb-2">Overall Score:</h3>
               <div className="flex items-center space-x-3">
-                <Progress value={feedbackResult.score} className={`w-full h-4 [&>div]:${getScoreColor(feedbackResult.score)}`} />
-                <Badge className={`text-lg px-3 py-1 ${getScoreColor(feedbackResult.score)} text-white`}>{feedbackResult.score}/100</Badge>
+                <Progress value={feedbackResult.overallScore} className={`w-full h-4 ${getProgressColorClass(feedbackResult.overallScore)}`} />
+                <Badge className={`text-lg px-3 py-1 ${getScoreColor(feedbackResult.overallScore).replace('text-', 'bg-')} text-white`}>{feedbackResult.overallScore}/100</Badge>
               </div>
             </div>
             
-            <div>
-              <h3 className="text-xl font-semibold mb-2">AI Feedback:</h3>
-              <Textarea value={feedbackResult.feedback} readOnly className="min-h-[250px] bg-muted/30 text-sm font-mono leading-relaxed border-border" />
-            </div>
+            <Accordion type="multiple" defaultValue={['summary', 'keywords', 'sections']} className="w-full">
+                <AccordionItem value="summary">
+                    <AccordionTrigger className="text-lg font-semibold">Summary & Key Suggestions</AccordionTrigger>
+                    <AccordionContent className="pt-2">
+                        <Textarea value={feedbackResult.summaryFeedback} readOnly className="min-h-[150px] bg-muted/30 text-sm leading-relaxed border-border" />
+                    </AccordionContent>
+                </AccordionItem>
 
-            {feedbackResult.missingSections && feedbackResult.missingSections.length > 0 && (
-                 <div>
-                    <h4 className="text-lg font-semibold mb-1">Missing Sections:</h4>
-                    <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
-                        {feedbackResult.missingSections.map(section => <li key={section}>{section}</li>)}
-                    </ul>
-                </div>
-            )}
+                {feedbackResult.keywordAnalysis && (
+                     <AccordionItem value="keywords">
+                        <AccordionTrigger className="text-lg font-semibold">Keyword Analysis</AccordionTrigger>
+                        <AccordionContent className="pt-2 space-y-3">
+                            {feedbackResult.keywordAnalysis.relevantKeywordsFound && feedbackResult.keywordAnalysis.relevantKeywordsFound.length > 0 && (
+                                <div>
+                                    <p className="text-sm font-medium mb-1 flex items-center"><ThumbsUp className="h-4 w-4 mr-2 text-green-600"/>Relevant Keywords Found:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {feedbackResult.keywordAnalysis.relevantKeywordsFound.map(kw => <Badge key={kw} variant="secondary" className="bg-green-100 text-green-800 border-green-300">{kw}</Badge>)}
+                                    </div>
+                                </div>
+                            )}
+                            {feedbackResult.keywordAnalysis.missingKeywordsForTargetRole && feedbackResult.keywordAnalysis.missingKeywordsForTargetRole.length > 0 && (
+                                 <div>
+                                    <p className="text-sm font-medium mb-1 flex items-center"><Info className="h-4 w-4 mr-2 text-blue-600"/>Keywords to Consider for '{targetRoleOrDomain || 'Target Role'}':</p>
+                                     <div className="flex flex-wrap gap-2">
+                                        {feedbackResult.keywordAnalysis.missingKeywordsForTargetRole.map(kw => <Badge key={kw} variant="outline" className="border-blue-300 text-blue-800">{kw}</Badge>)}
+                                    </div>
+                                </div>
+                            )}
+                             {feedbackResult.keywordAnalysis.powerVerbSuggestions && feedbackResult.keywordAnalysis.powerVerbSuggestions.length > 0 && (
+                                 <div>
+                                    <p className="text-sm font-medium mb-1 flex items-center"><Sparkles className="h-4 w-4 mr-2 text-purple-600"/>Power Verb & Phrasing Suggestions:</p>
+                                     <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 pl-4">
+                                        {feedbackResult.keywordAnalysis.powerVerbSuggestions.map((sugg, i) => <li key={i}>{sugg}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+                            {(!feedbackResult.keywordAnalysis.relevantKeywordsFound || feedbackResult.keywordAnalysis.relevantKeywordsFound.length === 0) && 
+                             (!feedbackResult.keywordAnalysis.missingKeywordsForTargetRole || feedbackResult.keywordAnalysis.missingKeywordsForTargetRole.length === 0) &&
+                             (!feedbackResult.keywordAnalysis.powerVerbSuggestions || feedbackResult.keywordAnalysis.powerVerbSuggestions.length === 0) &&
+                             <p className="text-sm text-muted-foreground italic">No specific keyword or phrasing analysis provided in this report.</p>
+                            }
+                        </AccordionContent>
+                    </AccordionItem>
+                )}
 
-            {feedbackResult.keywordAnalysis && (
-                 <div>
-                    <h4 className="text-lg font-semibold mb-1">Keyword Analysis:</h4>
-                    {feedbackResult.keywordAnalysis.relevantKeywordsFound && feedbackResult.keywordAnalysis.relevantKeywordsFound.length > 0 && (
-                        <div className="mb-2">
-                            <p className="text-sm font-medium text-green-700">Relevant Keywords Found:</p>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {feedbackResult.keywordAnalysis.relevantKeywordsFound.map(kw => <Badge key={kw} variant="secondary" className="bg-green-100 text-green-800">{kw}</Badge>)}
-                            </div>
-                        </div>
-                    )}
-                    {feedbackResult.keywordAnalysis.suggestedKeywordsToAdd && feedbackResult.keywordAnalysis.suggestedKeywordsToAdd.length > 0 && (
-                         <div>
-                            <p className="text-sm font-medium text-blue-700">Suggested Keywords to Add:</p>
-                             <div className="flex flex-wrap gap-1 mt-1">
-                                {feedbackResult.keywordAnalysis.suggestedKeywordsToAdd.map(kw => <Badge key={kw} variant="outline" className="border-blue-300 text-blue-800">{kw}</Badge>)}
-                            </div>
-                        </div>
-                    )}
-                    {(!feedbackResult.keywordAnalysis.relevantKeywordsFound || feedbackResult.keywordAnalysis.relevantKeywordsFound.length === 0) && 
-                     (!feedbackResult.keywordAnalysis.suggestedKeywordsToAdd || feedbackResult.keywordAnalysis.suggestedKeywordsToAdd.length === 0) &&
-                     <p className="text-sm text-muted-foreground italic">No specific keywords identified for highlighting or suggestion in this analysis.</p>
-                    }
-                </div>
-            )}
-             <p className="text-sm text-muted-foreground mt-4">
-                **Formatting Issues & Suggestions for Improvement** are typically included within the main AI Feedback text above. The AI also considers **Skill Relevance** during its analysis.
-             </p>
+                {feedbackResult.sectionsAnalysis && feedbackResult.sectionsAnalysis.length > 0 && (
+                    <AccordionItem value="sections">
+                        <AccordionTrigger className="text-lg font-semibold">Detailed Section Analysis</AccordionTrigger>
+                        <AccordionContent className="pt-2">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Section</TableHead>
+                                        <TableHead className="text-center w-[80px]">Score</TableHead>
+                                        <TableHead>Feedback & Suggestions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {feedbackResult.sectionsAnalysis.map((section: SectionAnalysis) => (
+                                        <TableRow key={section.name} className={section.isMissing ? "bg-yellow-500/10" : ""}>
+                                            <TableCell className="font-medium">
+                                                {section.name} 
+                                                {section.isMissing && <Badge variant="destructive" className="ml-2 text-xs">Missing</Badge>}
+                                            </TableCell>
+                                            <TableCell className={`text-center font-semibold ${getScoreColor(section.score, 10)}`}>
+                                                {section.isMissing ? "N/A" : `${section.score}/10`}
+                                            </TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{section.feedback}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </AccordionContent>
+                    </AccordionItem>
+                )}
+                
+                {feedbackResult.formattingAndClarity && (
+                    <AccordionItem value="formatting">
+                        <AccordionTrigger className="text-lg font-semibold">Formatting & Clarity (Score: {feedbackResult.formattingAndClarity.score}/10)</AccordionTrigger>
+                        <AccordionContent className="pt-2">
+                             <Progress value={feedbackResult.formattingAndClarity.score * 10} className={`h-2 mb-3 ${getProgressColorClass(feedbackResult.formattingAndClarity.score,10)}`} />
+                            {feedbackResult.formattingAndClarity.suggestions && feedbackResult.formattingAndClarity.suggestions.length > 0 ? (
+                                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 pl-4">
+                                    {feedbackResult.formattingAndClarity.suggestions.map((sugg, i) => <li key={i}>{sugg}</li>)}
+                                </ul>
+                            ) : <p className="text-sm text-muted-foreground italic">No specific formatting or clarity suggestions provided.</p>}
+                        </AccordionContent>
+                    </AccordionItem>
+                )}
+
+                {feedbackResult.atsFriendliness && (
+                    <AccordionItem value="ats">
+                        <AccordionTrigger className="text-lg font-semibold">ATS Friendliness (Score: {feedbackResult.atsFriendliness.score}/10)</AccordionTrigger>
+                        <AccordionContent className="pt-2">
+                            <Progress value={feedbackResult.atsFriendliness.score * 10} className={`h-2 mb-3 ${getProgressColorClass(feedbackResult.atsFriendliness.score,10)}`} />
+                            {feedbackResult.atsFriendliness.suggestions && feedbackResult.atsFriendliness.suggestions.length > 0 ? (
+                                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 pl-4">
+                                    {feedbackResult.atsFriendliness.suggestions.map((sugg, i) => <li key={i}>{sugg}</li>)}
+                                </ul>
+                            ) : <p className="text-sm text-muted-foreground italic">No specific ATS friendliness suggestions provided.</p>}
+                        </AccordionContent>
+                    </AccordionItem>
+                )}
+            </Accordion>
+
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row justify-between items-start gap-3 border-t pt-4">
             <div className="flex flex-wrap gap-2">
@@ -228,7 +317,7 @@ export default function ResumeAnalyzerPage() {
                  const fileInput = document.getElementById('resume-input-analyzer-page') as HTMLInputElement;
                  if(fileInput) fileInput.value = "";
                }}>
-                <UploadCloud className="mr-2 h-4 w-4" /> Re-upload & Analyze New Resume
+                <UploadCloud className="mr-2 h-4 w-4" /> Analyze Another Resume
               </Button>
                <Button variant="outline" asChild>
                 <Link href="/resume-builder">
@@ -237,7 +326,7 @@ export default function ResumeAnalyzerPage() {
               </Button>
             </div>
              <p className="text-xs text-muted-foreground italic flex items-center mt-2 sm:mt-0">
-                <AlertCircle className="h-3 w-3 mr-1"/> AI feedback is for guidance.
+                <AlertCircle className="h-3 w-3 mr-1"/> AI feedback is for guidance. Use your judgment.
              </p>
           </CardFooter>
         </Card>
@@ -245,3 +334,6 @@ export default function ResumeAnalyzerPage() {
     </div>
   );
 }
+
+
+    
