@@ -1,218 +1,162 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { BriefcaseBusiness, Building, MapPin, Search, PlusCircle, Filter, Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { BriefcaseBusiness, Building, MapPin, Search, Filter, Loader2, ExternalLink, AlertCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
-import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, Timestamp, serverTimestamp, query, where, orderBy, Query } from 'firebase/firestore';
 import Link from 'next/link';
-import { JOB_TITLES, INDIAN_CITIES, IT_KEYWORDS, JOB_TYPES, ALL_FILTER_VALUE } from '@/lib/constants';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { INDIAN_CITIES, JOB_TYPES, ALL_FILTER_VALUE } from '@/lib/constants';
+import { searchJobs, JSearchInput, JSearchOutput, JSearchJob } from '@/ai/flows/jsearch-flow';
 
-interface Job {
-  id: string;
-  title: string;
-  company: string;
-  companyLogo?: string;
-  location: string;
-  type: string;
-  description: string;
-  skills: string[];
-  postedDate: Date;
-  salary?: string;
-}
+// Mapping for display names to JSearch API values for Job Types
+const JOB_TYPE_API_VALUES: { [key: string]: string } = {
+  "Internship": "INTERN",
+  "Full-time": "FULLTIME",
+  "Part-time": "PARTTIME",
+  "Contract": "CONTRACTOR", // JSearch uses CONTRACTOR for Contract
+  "Freelance": "FREELANCE", // Assuming JSearch supports this, otherwise map to CONTRACTOR or similar
+};
 
 export default function JobsPage() {
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<JSearchJob[]>([]);
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
-  const [isPostJobDialogOpen, setIsPostJobDialogOpen] = useState(false);
-  const [newJob, setNewJob] = useState<Partial<Omit<Job, 'postedDate' | 'id' | 'skills'> & {postedDate?: Timestamp, skills?: string[]}>>({ skills: [] });
+  const [error, setError] = useState<string | null>(null);
   
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTitle, setSelectedTitle] = useState(ALL_FILTER_VALUE);
-  const [selectedLocation, setSelectedLocation] = useState(ALL_FILTER_VALUE);
+  const [searchTerm, setSearchTerm] = useState("Software Developer"); // Default search
+  const [selectedLocation, setSelectedLocation] = useState(INDIAN_CITIES[0]); // Default to Bengaluru
   const [selectedJobType, setSelectedJobType] = useState(ALL_FILTER_VALUE);
-  const [selectedKeywords, setSelectedKeywords] = useState<string[]>([]);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const { toast } = useToast();
 
-  const fetchJobs = useCallback(async () => {
+  const fetchJobs = useCallback(async (isNewSearch: boolean = false) => {
     setIsLoadingJobs(true);
+    setError(null);
+    if (isNewSearch) {
+      setCurrentPage(1); // Reset to page 1 for new searches
+      setJobs([]); // Clear old jobs for a new search
+    }
+
+    let query = searchTerm.trim();
+    if (selectedLocation !== ALL_FILTER_VALUE && selectedLocation) {
+      query = `${query} in ${selectedLocation}`;
+    }
+    
+    const apiJobType = selectedJobType !== ALL_FILTER_VALUE && JOB_TYPE_API_VALUES[selectedJobType] 
+      ? JOB_TYPE_API_VALUES[selectedJobType] 
+      : undefined;
+
+    const input: JSearchInput = {
+      query: query || "jobs", // Default to "jobs" if query is empty
+      page: isNewSearch ? 1 : currentPage,
+      employmentTypes: apiJobType,
+    };
+
     try {
-      let jobsQuery: Query = collection(db, 'jobs');
-
-      if (selectedTitle !== ALL_FILTER_VALUE) {
-        jobsQuery = query(jobsQuery, where("title", "==", selectedTitle));
+      const result: JSearchOutput = await searchJobs(input);
+      if (isNewSearch) {
+        setJobs(result.jobs);
+      } else {
+        setJobs(prevJobs => [...prevJobs, ...result.jobs]);
       }
-      if (selectedLocation !== ALL_FILTER_VALUE) {
-        jobsQuery = query(jobsQuery, where("location", "==", selectedLocation));
+      setTotalPages(result.total_pages || 1);
+      if (result.jobs.length === 0 && (isNewSearch || currentPage === 1)) {
+        toast({ title: "No Jobs Found", description: "Try adjusting your filters or search terms." });
       }
-      if (selectedJobType !== ALL_FILTER_VALUE) {
-        jobsQuery = query(jobsQuery, where("type", "==", selectedJobType));
-      }
-      
-      jobsQuery = query(jobsQuery, orderBy('postedDate', 'desc'));
-      
-      const jobSnapshot = await getDocs(jobsQuery);
-      let jobList = jobSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          skills: data.skills || [], // ensure skills is an array
-          postedDate: (data.postedDate as Timestamp)?.toDate ? (data.postedDate as Timestamp).toDate() : new Date(),
-        } as Job;
-      });
-
-      // Client-side filtering for keywords (must contain ALL selected keywords)
-      if (selectedKeywords.length > 0) {
-        jobList = jobList.filter(job =>
-          selectedKeywords.every(keyword => job.skills.includes(keyword))
-        );
-      }
-      
-      // Client-side filtering for search term (if any)
-      if (searchTerm.trim() !== "") {
-        const lowerSearchTerm = searchTerm.toLowerCase();
-        jobList = jobList.filter(job => 
-            job.title.toLowerCase().includes(lowerSearchTerm) ||
-            job.company.toLowerCase().includes(lowerSearchTerm) ||
-            job.description.toLowerCase().includes(lowerSearchTerm) ||
-            job.skills.some(skill => skill.toLowerCase().includes(lowerSearchTerm))
-        );
-      }
-
-      setJobs(jobList);
-    } catch (error) {
-      console.error("Error fetching jobs:", error);
-      toast({ title: "Error", description: "Could not fetch jobs.", variant: "destructive" });
+    } catch (err) {
+      console.error("Error fetching jobs from JSearch flow:", err);
+      const errorMessage = err instanceof Error ? err.message : "Could not fetch jobs.";
+      setError(errorMessage);
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      setJobs([]); // Clear jobs on error
     } finally {
       setIsLoadingJobs(false);
     }
-  }, [selectedTitle, selectedLocation, selectedJobType, selectedKeywords, searchTerm, toast]);
+  }, [searchTerm, selectedLocation, selectedJobType, currentPage, toast]);
 
   useEffect(() => {
-    fetchJobs();
-  }, [fetchJobs]);
+    fetchJobs(true); // Initial fetch, isNewSearch = true
+  }, [searchTerm, selectedLocation, selectedJobType]); // Re-fetch when these filters change (will reset page to 1)
 
-  const handlePostJobInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setNewJob(prev => ({ ...prev, [name]: value }));
-  };
+  const handleLoadMore = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prevPage => prevPage + 1);
+      // Trigger fetch for the next page
+       const nextPage = currentPage + 1;
+        let query = searchTerm.trim();
+        if (selectedLocation !== ALL_FILTER_VALUE && selectedLocation) {
+          query = `${query} in ${selectedLocation}`;
+        }
+        const apiJobType = selectedJobType !== ALL_FILTER_VALUE && JOB_TYPE_API_VALUES[selectedJobType] 
+          ? JOB_TYPE_API_VALUES[selectedJobType] 
+          : undefined;
 
-  const handlePostJobSelectChange = (name: string, value: string) => {
-    setNewJob(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleAddSkillToJob = (skill: string) => {
-    if (skill && !newJob.skills?.includes(skill)) {
-      setNewJob(prev => ({ ...prev, skills: [...(prev.skills || []), skill] }));
-    }
-  };
-
-  const handleRemoveSkillFromJob = (skillToRemove: string) => {
-    setNewJob(prev => ({ ...prev, skills: prev.skills?.filter(skill => skill !== skillToRemove) }));
-  };
-
-  const handlePostJobSubmit = async () => {
-    if (!newJob.title || !newJob.company || !newJob.location || !newJob.type || !newJob.description) {
-       toast({ title: "Error", description: "Please fill all required fields.", variant: "destructive" });
-      return;
-    }
-    setIsLoadingJobs(true); // Use general loading state
-    try {
-      const jobToPost = {
-        ...newJob,
-        skills: newJob.skills || [],
-        postedDate: serverTimestamp(),
-        companyLogo: newJob.companyLogo || `https://placehold.co/100x100.png?text=${newJob.company!.substring(0,2).toUpperCase()}`,
-      };
-      const docRef = await addDoc(collection(db, 'jobs'), jobToPost);
-      
-      setJobs(prevJobs => [{
-        id: docRef.id,
-        ...newJob,
-        skills: newJob.skills || [],
-        postedDate: new Date(), 
-        companyLogo: jobToPost.companyLogo,
-      } as Job, ...prevJobs]);
-
-      toast({ title: "Job Posted", description: `"${newJob.title}" has been successfully posted.` });
-      setIsPostJobDialogOpen(false);
-      setNewJob({ skills: [] });
-      fetchJobs(); // Refetch jobs to ensure filters are up-to-date if they were dynamic
-    } catch (error) {
-      console.error("Error posting job:", error);
-      toast({ title: "Error", description: "Could not post job. Please try again.", variant: "destructive" });
-    } finally {
-      setIsLoadingJobs(false);
+        const input: JSearchInput = {
+          query: query || "jobs",
+          page: nextPage,
+          employmentTypes: apiJobType,
+        };
+        setIsLoadingJobs(true);
+        searchJobs(input).then(result => {
+            setJobs(prevJobs => [...prevJobs, ...result.jobs]);
+            setTotalPages(result.total_pages || 1);
+            setCurrentPage(nextPage);
+        }).catch(err => {
+            console.error("Error fetching more jobs:", err);
+            toast({ title: "Error", description: "Could not load more jobs.", variant: "destructive" });
+        }).finally(() => setIsLoadingJobs(false));
     }
   };
   
-  const handleKeywordSelect = (keyword: string) => {
-    setSelectedKeywords(prev => 
-      prev.includes(keyword) 
-        ? prev.filter(k => k !== keyword) 
-        : [...prev, keyword]
-    );
+  const handleFilterChangeAndSearch = () => {
+    // This function can be called by a search button if you add one,
+    // or simply rely on the useEffect for direct changes.
+    // For this setup, useEffect handles it.
+    fetchJobs(true);
   };
+
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h1 className="text-3xl font-bold font-headline">Find Your Next Opportunity</h1>
-        <Button onClick={() => setIsPostJobDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Post a Job
-        </Button>
       </div>
 
       <Card>
         <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center"><Filter className="mr-2 h-5 w-5"/>Filter Options</CardTitle>
         </CardHeader>
-        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
           <div>
-            <Label htmlFor="search">Search Keywords</Label>
+            <Label htmlFor="search">Search Keywords (e.g., Job Title, Skill)</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input 
                 id="search" 
-                placeholder="Job title, company, skill..." 
+                placeholder="Software Engineer, React..." 
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleFilterChangeAndSearch()}
               />
             </div>
           </div>
-          <div>
-            <Label htmlFor="titleFilter">Job Title</Label>
-            <Select value={selectedTitle} onValueChange={setSelectedTitle}>
-              <SelectTrigger id="titleFilter"><SelectValue placeholder="All Titles" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_FILTER_VALUE}>All Titles</SelectItem>
-                {JOB_TITLES.map(title => <SelectItem key={title} value={title}>{title}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          
           <div>
             <Label htmlFor="locationFilter">Location</Label>
             <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger id="locationFilter"><SelectValue placeholder="All Locations" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL_FILTER_VALUE}>All Locations</SelectItem>
+                <SelectItem value={ALL_FILTER_VALUE}>All Locations (Global)</SelectItem>
                 {INDIAN_CITIES.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -227,41 +171,30 @@ export default function JobsPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="md:col-span-2 lg:col-span-4">
-            <Label htmlFor="keywordsFilter">Keywords/Skills</Label>
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                        {selectedKeywords.length > 0 ? `${selectedKeywords.length} skill(s) selected` : "Select skills..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[calc(100vw-2rem)] md:w-[300px] max-h-80 overflow-y-auto">
-                    <DropdownMenuLabel>Select Skills</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {/* Consider adding a search input here for long lists */}
-                    {IT_KEYWORDS.sort().map((keyword) => (
-                    <DropdownMenuCheckboxItem
-                        key={keyword}
-                        checked={selectedKeywords.includes(keyword)}
-                        onCheckedChange={() => handleKeywordSelect(keyword)}
-                        onSelect={(e) => e.preventDefault()} // prevent menu closing on item select
-                    >
-                        {keyword}
-                    </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="md:col-span-2 lg:col-span-3 flex justify-end">
+             <Button onClick={handleFilterChangeAndSearch} disabled={isLoadingJobs}>
+                {isLoadingJobs && searchTerm ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4" />}
+                Search Jobs
+            </Button>
           </div>
         </CardContent>
       </Card>
       
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold font-headline">Job Listings ({jobs.length})</h2>
-        {isLoadingJobs ? (
+        <h2 className="text-2xl font-semibold font-headline">Job Listings ({jobs.length > 0 ? `Showing ${jobs.length} jobs` : ''})</h2>
+        {isLoadingJobs && jobs.length === 0 ? ( // Show skeletons only on initial load or full new search
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1,2,3,4,5,6].map(i => <JobCardSkeleton key={i} />)}
             </div>
+        ) : error ? (
+             <Card className="text-center py-12 bg-destructive/10 border-destructive">
+                <CardContent className="flex flex-col items-center space-y-4">
+                <AlertCircle className="h-16 w-16 text-destructive" />
+                <p className="text-destructive font-semibold text-lg">Failed to load jobs</p>
+                <p className="text-muted-foreground font-body">{error}</p>
+                <Button onClick={() => fetchJobs(true)} variant="outline">Try Again</Button>
+                </CardContent>
+            </Card>
         ) : jobs.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent className="flex flex-col items-center space-y-4">
@@ -271,166 +204,73 @@ export default function JobsPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {jobs.map(job => <JobCard key={job.id} job={job} />)}
+            {jobs.map((job, index) => job.job_id ? <JobCard key={`${job.job_id}-${index}`} job={job} /> : null)}
+          </div>
+        )}
+        
+        {!isLoadingJobs && jobs.length > 0 && currentPage < totalPages && (
+          <div className="flex justify-center mt-8">
+            <Button onClick={handleLoadMore} variant="outline" disabled={isLoadingJobs}>
+              {isLoadingJobs && currentPage > 1 ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
+              Load More Jobs
+            </Button>
           </div>
         )}
       </section>
-
-      <Dialog open={isPostJobDialogOpen} onOpenChange={setIsPostJobDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle className="font-headline">Post a New Job / Internship</DialogTitle>
-            <DialogDescription>Fill in the details below to find the perfect candidate.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-2">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="jobTitlePost" className="text-right">Job Title</Label>
-              <Select name="title" onValueChange={(value) => handlePostJobSelectChange("title", value)} value={newJob.title || undefined}>
-                <SelectTrigger id="jobTitlePost" className="col-span-3"><SelectValue placeholder="Select job title" /></SelectTrigger>
-                <SelectContent>
-                  {JOB_TITLES.map(title => <SelectItem key={title} value={title}>{title}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="companyName" className="text-right">Company Name</Label>
-              <Input id="companyName" name="company" value={newJob.company || ""} onChange={handlePostJobInputChange} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="jobLocationPost" className="text-right">Location</Label>
-               <Select name="location" onValueChange={(value) => handlePostJobSelectChange("location", value)} value={newJob.location || undefined}>
-                <SelectTrigger id="jobLocationPost" className="col-span-3"><SelectValue placeholder="Select location" /></SelectTrigger>
-                <SelectContent>
-                  {INDIAN_CITIES.map(loc => <SelectItem key={loc} value={loc}>{loc}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="jobTypePost" className="text-right">Job Type</Label>
-              <Select name="type" onValueChange={(value) => handlePostJobSelectChange("type", value)} value={newJob.type || undefined}>
-                <SelectTrigger id="jobTypePost" className="col-span-3"><SelectValue placeholder="Select job type" /></SelectTrigger>
-                <SelectContent>
-                  {JOB_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="salary" className="text-right">Salary / Stipend</Label>
-              <Input id="salary" name="salary" value={newJob.salary || ""} onChange={handlePostJobInputChange} className="col-span-3" placeholder="e.g., ₹20,000/month or ₹5 LPA" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="jobDescription" className="text-right">Description</Label>
-              <Textarea id="jobDescription" name="description" value={newJob.description || ""} onChange={handlePostJobInputChange} className="col-span-3 min-h-[100px]" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Skills Required</Label>
-              <div className="col-span-3 space-y-2">
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" role="combobox" className="w-full justify-between">
-                        Add a skill...
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0">
-                        <Command>
-                        <CommandInput placeholder="Search skill..." />
-                        <CommandList>
-                            <CommandEmpty>No skill found.</CommandEmpty>
-                            <CommandGroup>
-                            {IT_KEYWORDS.filter(skill => !(newJob.skills || []).includes(skill)).sort().map((skill) => (
-                                <CommandItem
-                                key={skill}
-                                value={skill}
-                                onSelect={(currentValue) => {
-                                    handleAddSkillToJob(currentValue);
-                                }}
-                                >
-                                <Check
-                                    className={cn(
-                                    "mr-2 h-4 w-4",
-                                    (newJob.skills || []).includes(skill) ? "opacity-100" : "opacity-0"
-                                    )}
-                                />
-                                {skill}
-                                </CommandItem>
-                            ))}
-                            </CommandGroup>
-                        </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {(newJob.skills || []).map(skill => (
-                    <Badge key={skill} variant="default">
-                      {skill}
-                      <button onClick={() => handleRemoveSkillFromJob(skill)} className="ml-1.5 opacity-70 hover:opacity-100">&times;</button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPostJobDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handlePostJobSubmit} disabled={isLoadingJobs}>
-              {isLoadingJobs && newJob.title ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-              Post Job
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
 
 interface JobCardProps {
-  job: Job;
+  job: JSearchJob;
 }
 
 function JobCard({ job }: JobCardProps) {
-  const { id, title, company, companyLogo, location, type, description, skills, postedDate, salary } = job;
+  const { job_id, job_title, employer_name, employer_logo, job_city, job_state, job_employment_type, job_description, job_apply_link, job_publisher, job_posted_at_datetime_utc } = job;
+
+  const displayLocation = [job_city, job_state].filter(Boolean).join(", ");
 
   return (
     <Card className="flex flex-col overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
       <CardHeader className="flex flex-row items-start gap-4 space-y-0 p-4">
-        {companyLogo ? (
-          <Image src={companyLogo} alt={`${company} logo`} width={48} height={48} className="rounded-md border object-contain" data-ai-hint="company logo"/>
+        {employer_logo ? (
+          <Image src={employer_logo} alt={`${employer_name || 'Company'} logo`} width={48} height={48} className="rounded-md border object-contain bg-white" data-ai-hint="company logo"/>
         ) : (
           <div className="h-12 w-12 bg-muted rounded-md flex items-center justify-center">
             <Building className="h-6 w-6 text-muted-foreground" />
           </div>
         )}
         <div className="flex-1">
-          <CardTitle className="text-lg font-semibold font-headline leading-tight">{title}</CardTitle>
-          <p className="text-sm text-muted-foreground">{company}</p>
+          <CardTitle className="text-lg font-semibold font-headline leading-tight">{job_title || "N/A"}</CardTitle>
+          <p className="text-sm text-muted-foreground">{employer_name || job_publisher || "N/A"}</p>
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-0 flex-grow">
-        <div className="flex items-center text-xs text-muted-foreground mb-1">
-          <MapPin className="h-3 w-3 mr-1" /> {location}
-        </div>
-        <div className="flex items-center text-xs text-muted-foreground mb-3">
-          <BriefcaseBusiness className="h-3 w-3 mr-1" /> {type} {salary && `• ${salary}`}
-        </div>
-        <p className="text-sm text-foreground/80 line-clamp-3 mb-3 font-body">{description}</p>
-        <div className="space-y-1">
-          <h4 className="text-xs font-semibold text-muted-foreground">Skills:</h4>
-          <div className="flex flex-wrap gap-1">
-            {skills.slice(0, 4).map((skill) => (
-              <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
-            ))}
-            {skills.length > 4 && <Badge variant="outline" className="text-xs">+{skills.length - 4}</Badge>}
+        {displayLocation && (
+          <div className="flex items-center text-xs text-muted-foreground mb-1">
+            <MapPin className="h-3 w-3 mr-1" /> {displayLocation}
           </div>
-        </div>
+        )}
+        {job_employment_type && (
+          <div className="flex items-center text-xs text-muted-foreground mb-3">
+            <BriefcaseBusiness className="h-3 w-3 mr-1" /> {job_employment_type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+          </div>
+        )}
+        <p className="text-sm text-foreground/80 line-clamp-3 mb-3 font-body">{job_description || "No description available."}</p>
       </CardContent>
       <CardFooter className="p-4 border-t flex justify-between items-center">
-        <p className="text-xs text-muted-foreground">
-          Posted: {postedDate instanceof Date ? postedDate.toLocaleDateString() : 'N/A'}
+         <p className="text-xs text-muted-foreground">
+          {job_posted_at_datetime_utc ? `Posted: ${new Date(job_posted_at_datetime_utc).toLocaleDateString()}` : (job_publisher ? `Via: ${job_publisher}`: '')}
         </p>
-        <Button size="sm" variant="default" asChild>
-          <Link href={`/jobs/${id}/apply`}>Apply Now</Link>
-        </Button>
+        {job_apply_link ? (
+            <Button size="sm" variant="default" asChild>
+            <Link href={job_apply_link} target="_blank" rel="noopener noreferrer">
+                Apply Now <ExternalLink className="ml-2 h-3 w-3"/>
+            </Link>
+            </Button>
+        ): (
+            <Badge variant="outline">No Apply Link</Badge>
+        )}
       </CardFooter>
     </Card>
   );
@@ -450,12 +290,6 @@ function JobCardSkeleton() {
         <div className="h-3 bg-muted rounded w-1/3"></div>
         <div className="h-3 bg-muted rounded w-1/4"></div>
         <div className="h-10 bg-muted rounded w-full"></div>
-        <div className="h-3 bg-muted rounded w-1/4 mb-1"></div>
-        <div className="flex flex-wrap gap-1">
-          <div className="h-5 w-12 bg-muted rounded-full"></div>
-          <div className="h-5 w-16 bg-muted rounded-full"></div>
-          <div className="h-5 w-10 bg-muted rounded-full"></div>
-        </div>
       </CardContent>
       <CardFooter className="p-4 border-t flex justify-between items-center">
         <div className="h-4 bg-muted rounded w-1/4"></div>
@@ -464,4 +298,3 @@ function JobCardSkeleton() {
     </Card>
   );
 }
-
