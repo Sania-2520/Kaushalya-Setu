@@ -39,7 +39,7 @@ const initialProjects: Project[] = [
     id: "2",
     title: "Mobile Weather App",
     description: "Created a cross-platform mobile weather application using Flutter and OpenWeatherMap API. Features include real-time weather updates, 5-day forecast, and location-based services.",
-    imageUrl: "https://placehold.co/600x400.png?text=Weather+App",
+    imageUrl: "https://images.unsplash.com/photo-1517292987719-0369a794ec0f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMXx8bW9iaWxlJTIwd2VhdGhlciUyMGFwcHxlbnwwfHx8fDE3NDg4OTYzMjB8MA&ixlib=rb-4.1.0&q=80&w=1080",
     projectUrl: "https://example.com/weather-app",
     skills: ["Flutter", "Dart", "API Integration", "Mobile Development", "UI/UX Design"],
     uploadedAt: new Date(2023, 8, 22)
