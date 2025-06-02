@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config, { isServer }) => {
-    // The `async_hooks`, `fs`, `tls`, `net`, and `http2` modules are Node.js-specific and not available in the browser.
+    // The `async_hooks`, `fs`, `tls`, `net`, `http2`, and `dns` modules are Node.js-specific and not available in the browser.
     // Some server-side dependencies (like OpenTelemetry used by Genkit, or parts of Genkit plugins) might try to import them.
     // This configuration tells Webpack to provide an empty module for these
     // when building the client-side bundle, preventing "Module not found" errors.
@@ -33,6 +33,7 @@ const nextConfig: NextConfig = {
         tls: false, // Provide an empty module for tls on the client
         net: false, // Provide an empty module for net on the client
         http2: false, // Provide an empty module for http2 on the client
+        dns: false, // Provide an empty module for dns on the client
       };
     }
     return config;
