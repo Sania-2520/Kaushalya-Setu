@@ -86,7 +86,7 @@ export default function ResumeReviewerPage() {
           <div className="inline-flex justify-center items-center mb-4">
             <Sparkles className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-3xl font-bold font-headline">Improve Your Resume with AI!</CardTitle>
+          <CardTitle className="text-3xl font-bold font-headline">AI Resume Analyzer</CardTitle>
           <CardDescription className="max-w-2xl mx-auto text-lg text-foreground/80 font-body">
             Upload your resume and let our intelligent analyzer review it for structure, skills, keywords, and completeness. 
             You'll receive a score out of 100 along with personalized feedback to improve your resume for internships and job applications.
