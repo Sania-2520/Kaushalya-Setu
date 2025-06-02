@@ -1,17 +1,19 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, UploadCloud, Trash2, Edit3, Award, ThumbsUp, Eye, Share2 } from "lucide-react";
+import { PlusCircle, UploadCloud, Trash2, Edit3, Award, ThumbsUp, Eye, Share2, FileText, Loader2, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { identifySkills, SkillTaggingInput, SkillTaggingOutput } from '@/ai/flows/skill-tagging';
+import { getResumeFeedback, ResumeFeedbackInput, ResumeFeedbackOutput } from '@/ai/flows/resume-feedback-flow';
 import { useToast } from "@/hooks/use-toast";
 
 interface Project {
@@ -55,11 +57,16 @@ export default function PortfolioPage() {
   const { toast } = useToast();
   const [profileCompletion, setProfileCompletion] = useState(0);
 
+  // State for Resume Analyzer
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null);
+  const [resumeFeedback, setResumeFeedback] = useState<string | null>(null);
+  const [isAnalyzingResume, setIsAnalyzingResume] = useState(false);
+
   useEffect(() => {
-    // Simulate profile completion calculation
-    const baseCompletion = 20; // Basic info
-    const projectBonus = Math.min(projects.length * 15, 60); // Up to 4 projects
-    const skillsBonus = Math.min(projects.reduce((acc, p) => acc + p.skills.length, 0) * 2, 20); // Up to 10 skills
+    const baseCompletion = 20; 
+    const projectBonus = Math.min(projects.length * 15, 60); 
+    const skillsBonus = Math.min(projects.reduce((acc, p) => acc + p.skills.length, 0) * 2, 20); 
     setProfileCompletion(baseCompletion + projectBonus + skillsBonus);
   }, [projects]);
 
@@ -72,7 +79,7 @@ export default function PortfolioPage() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProjectImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -96,7 +103,7 @@ export default function PortfolioPage() {
       toast({ title: "Skills Suggested", description: "AI has suggested skills based on your description." });
     } catch (error) {
       console.error("Skill tagging failed:", error);
-      toast({ title: "Skill Tagging Error", description: "Could not suggest skills. Please try again.", variant: "destructive" });
+      toast({ title: "Skill Tagging Error", description: `Could not suggest skills. ${error instanceof Error ? error.message : ''}`, variant: "destructive" });
     } finally {
       setIsTagging(false);
     }
@@ -112,12 +119,12 @@ export default function PortfolioPage() {
     setCurrentProject(prev => ({ ...prev, skills: prev.skills?.filter(skill => skill !== skillToRemove) }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmitProject = () => {
     if (!currentProject.title || !currentProject.description) {
       toast({ title: "Error", description: "Project title and description are required.", variant: "destructive" });
       return;
     }
-    const newProject: Project = {
+    const newProjectData: Project = {
       id: currentProject.id || Date.now().toString(),
       title: currentProject.title!,
       description: currentProject.description!,
@@ -128,11 +135,11 @@ export default function PortfolioPage() {
     };
 
     if (currentProject.id) {
-      setProjects(projects.map(p => p.id === newProject.id ? newProject : p));
-      toast({ title: "Project Updated", description: `"${newProject.title}" has been updated.` });
+      setProjects(projects.map(p => p.id === newProjectData.id ? newProjectData : p));
+      toast({ title: "Project Updated", description: `"${newProjectData.title}" has been updated.` });
     } else {
-      setProjects([newProject, ...projects]);
-      toast({ title: "Project Added", description: `"${newProject.title}" has been added to your portfolio.` });
+      setProjects([newProjectData, ...projects]);
+      toast({ title: "Project Added", description: `"${newProjectData.title}" has been added to your portfolio.` });
     }
     setIsDialogOpen(false);
     setCurrentProject({});
@@ -150,7 +157,7 @@ export default function PortfolioPage() {
   const openEditProjectDialog = (project: Project) => {
     setCurrentProject(project);
     setProjectDescriptionForTagging(project.description);
-    setSuggestedSkills([]); // Clear previous suggestions or optionally re-tag
+    setSuggestedSkills([]);
     setIsDialogOpen(true);
   };
 
@@ -158,6 +165,65 @@ export default function PortfolioPage() {
     setProjects(projects.filter(p => p.id !== projectId));
     toast({ title: "Project Deleted", description: "The project has been removed from your portfolio." });
   };
+
+  // Resume Analyzer Functions
+  const handleResumeFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type === "application/pdf") {
+        if (file.size <= 5 * 1024 * 1024) { // Max 5MB
+          setResumeFile(file);
+          setResumeFileName(file.name);
+          setResumeFeedback(null); // Clear previous feedback
+        } else {
+          toast({ title: "File Too Large", description: "Resume PDF must be 5MB or less.", variant: "destructive" });
+          setResumeFile(null);
+          setResumeFileName(null);
+        }
+      } else {
+        toast({ title: "Invalid File Type", description: "Please upload a PDF file for your resume.", variant: "destructive" });
+        setResumeFile(null);
+        setResumeFileName(null);
+      }
+    }
+  };
+
+  const handleAnalyzeResume = async () => {
+    if (!resumeFile) {
+      toast({ title: "No Resume Selected", description: "Please upload your resume PDF first.", variant: "destructive" });
+      return;
+    }
+    setIsAnalyzingResume(true);
+    setResumeFeedback(null);
+
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(resumeFile);
+      reader.onload = async () => {
+        const resumeDataUri = reader.result as string;
+        if (!resumeDataUri) {
+          toast({ title: "Error Reading File", description: "Could not read the resume file.", variant: "destructive" });
+          setIsAnalyzingResume(false);
+          return;
+        }
+        const input: ResumeFeedbackInput = { resumeDataUri };
+        const result: ResumeFeedbackOutput = await getResumeFeedback(input);
+        setResumeFeedback(result.feedback);
+        toast({ title: "Resume Analysis Complete!", description: "Check the feedback below." });
+      };
+      reader.onerror = () => {
+        toast({ title: "Error Reading File", description: "Could not read the resume file.", variant: "destructive" });
+        setIsAnalyzingResume(false);
+      };
+    } catch (error) {
+      console.error("Resume analysis failed:", error);
+      toast({ title: "Resume Analysis Error", description: `Could not analyze resume. ${error instanceof Error ? error.message : 'Please try again.'}`, variant: "destructive" });
+      setResumeFeedback("Failed to get feedback. Please try again.");
+    } finally {
+      setIsAnalyzingResume(false);
+    }
+  };
+
 
   return (
     <div className="space-y-8">
@@ -206,6 +272,52 @@ export default function PortfolioPage() {
         </CardContent>
       </Card>
 
+      {/* Resume Analyzer Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center">
+            <Sparkles className="mr-2 h-6 w-6 text-primary" />
+            AI Resume Analyzer
+          </CardTitle>
+          <CardDescription>
+            Upload your resume (PDF, max 5MB) to get personalized feedback and suggestions for improvement.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="resumeUpload" className="sr-only">Upload Resume</Label>
+            <Input 
+              id="resumeUpload" 
+              type="file" 
+              accept=".pdf" 
+              onChange={handleResumeFileChange} 
+              className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+            />
+            {resumeFileName && <p className="text-sm text-muted-foreground mt-2">Selected: {resumeFileName}</p>}
+          </div>
+          <Button onClick={handleAnalyzeResume} disabled={!resumeFile || isAnalyzingResume}>
+            {isAnalyzingResume ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="mr-2 h-4 w-4" />
+            )}
+            {isAnalyzingResume ? "Analyzing..." : "Analyze Resume"}
+          </Button>
+          {resumeFeedback && (
+            <div className="mt-4 p-4 border rounded-md bg-muted/50">
+              <h4 className="font-semibold mb-2 font-headline text-lg">Resume Feedback:</h4>
+              <Textarea
+                readOnly
+                value={resumeFeedback}
+                className="min-h-[200px] font-body bg-background"
+                rows={15}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold font-headline">My Projects</h2>
         <Button onClick={openAddProjectDialog}>
@@ -216,7 +328,7 @@ export default function PortfolioPage() {
       {projects.length === 0 ? (
         <Card className="text-center py-12">
           <CardContent className="flex flex-col items-center space-y-4">
-            <Briefcase className="h-16 w-16 text-muted-foreground" />
+            <Eye className="h-16 w-16 text-muted-foreground" />
             <p className="text-muted-foreground font-body">Your portfolio is empty. Add your first project to showcase your skills!</p>
             <Button onClick={openAddProjectDialog}>
               <PlusCircle className="mr-2 h-4 w-4" /> Add Your First Project
@@ -229,7 +341,7 @@ export default function PortfolioPage() {
             <Card key={project.id} className="flex flex-col overflow-hidden shadow-lg transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
               {project.imageUrl && (
                 <div className="aspect-video relative overflow-hidden">
-                  <Image src={project.imageUrl} alt={project.title} layout="fill" objectFit="cover" data-ai-hint="project technology" />
+                  <Image src={project.imageUrl} alt={project.title} layout="fill" objectFit="cover" data-ai-hint="project technology"/>
                 </div>
               )}
               <CardHeader>
@@ -295,18 +407,18 @@ export default function PortfolioPage() {
               <Textarea id="description" name="description" value={currentProject.description || ""} onChange={handleInputChange} className="col-span-3 min-h-[100px]" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="imageUrl" className="text-right">Image</Label>
+              <Label htmlFor="projectImageUpload" className="text-right">Image</Label>
               <div className="col-span-3">
-                <Input id="imageUrl" name="imageUrl" type="file" accept="image/*" onChange={handleFileChange} className="mb-2"/>
-                {currentProject.imageUrl && <Image src={currentProject.imageUrl} alt="Project preview" width={100} height={100} className="rounded-md object-cover" data-ai-hint="project image" />}
+                <Input id="projectImageUpload" name="projectImageUpload" type="file" accept="image/*" onChange={handleProjectImageFileChange} className="mb-2"/>
+                {currentProject.imageUrl && <Image src={currentProject.imageUrl} alt="Project preview" width={100} height={100} className="rounded-md object-cover" data-ai-hint="project image"/>}
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="projectUrl" className="text-right">Project URL</Label>
               <Input id="projectUrl" name="projectUrl" value={currentProject.projectUrl || ""} onChange={handleInputChange} className="col-span-3" placeholder="https://github.com/your/project" />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Skills</Label>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right pt-2">Skills</Label>
               <div className="col-span-3 space-y-2">
                 <Button variant="outline" size="sm" onClick={handleSkillTagging} disabled={isTagging || !projectDescriptionForTagging.trim()}>
                   <Award className="mr-2 h-4 w-4" /> {isTagging ? "Suggesting..." : "AI Suggest Skills"}
@@ -348,7 +460,7 @@ export default function PortfolioPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmit}>Save Project</Button>
+            <Button onClick={handleSubmitProject}>Save Project</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
