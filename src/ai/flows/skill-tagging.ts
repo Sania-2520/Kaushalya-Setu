@@ -21,6 +21,7 @@ export async function identifySkills(input: SkillTaggingInput): Promise<SkillTag
 
 const skillTaggingPrompt = ai.definePrompt({
   name: 'skillTaggingPrompt',
+  model: 'googleai/gemini-2.0-flash',
   input: {schema: SkillTaggingInputSchema},
   output: {schema: SkillTaggingOutputSchema},
   prompt: `You are an AI assistant specialized in identifying skills from project descriptions.

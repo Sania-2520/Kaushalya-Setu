@@ -36,6 +36,7 @@ export async function recommendOpportunities(input: RecommendOpportunitiesInput)
 
 const prompt = ai.definePrompt({
   name: 'recommendOpportunitiesPrompt',
+  model: 'googleai/gemini-2.0-flash',
   input: {schema: RecommendOpportunitiesInputSchema},
   output: {schema: RecommendOpportunitiesOutputSchema},
   prompt: `You are an AI career advisor specializing in matching students with internships and jobs.
