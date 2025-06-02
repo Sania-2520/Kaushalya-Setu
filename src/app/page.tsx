@@ -113,9 +113,6 @@ export default function HomePage() {
             <Button size="lg" variant="outline" asChild>
               <Link href="/#features-section">Explore Opportunities</Link>
             </Button>
-            <Button size="lg" variant="secondary" asChild>
-              <Link href="/course-progress">View Course Progress</Link>
-            </Button>
           </div>
         </div>
       </section>
