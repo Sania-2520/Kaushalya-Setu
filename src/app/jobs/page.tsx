@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { BriefcaseBusiness, Building, MapPin, Search, Filter, Loader2, ExternalLink, PlusCircle, AlertCircle, Check, ChevronsUpDown, Tag } from "lucide-react";
+import { BriefcaseBusiness, Building, MapPin, Filter, Loader2, ExternalLink, PlusCircle, AlertCircle, Check, ChevronsUpDown, Tag } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
@@ -58,7 +58,6 @@ export default function JobsPage() {
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedTitle, setSelectedTitle] = useState(ALL_FILTER_VALUE);
   const [selectedLocation, setSelectedLocation] = useState(ALL_FILTER_VALUE);
   const [selectedJobType, setSelectedJobType] = useState(ALL_FILTER_VALUE);
@@ -138,21 +137,15 @@ export default function JobsPage() {
 
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
-      const searchTermLower = searchTerm.toLowerCase();
-      const matchesSearchTerm = 
-        job.title.toLowerCase().includes(searchTermLower) ||
-        job.company.toLowerCase().includes(searchTermLower) ||
-        job.description.toLowerCase().includes(searchTermLower);
-      
       const matchesTitle = selectedTitle === ALL_FILTER_VALUE || job.title === selectedTitle;
       const matchesLocation = selectedLocation === ALL_FILTER_VALUE || job.location === selectedLocation;
       const matchesJobType = selectedJobType === ALL_FILTER_VALUE || job.type === selectedJobType;
       
       const matchesKeywords = selectedKeywords.length === 0 || selectedKeywords.every(keyword => job.skills.some(skill => skill.toLowerCase().includes(keyword.toLowerCase())));
 
-      return matchesSearchTerm && matchesTitle && matchesLocation && matchesJobType && matchesKeywords;
+      return matchesTitle && matchesLocation && matchesJobType && matchesKeywords;
     });
-  }, [jobs, searchTerm, selectedTitle, selectedLocation, selectedJobType, selectedKeywords]);
+  }, [jobs, selectedTitle, selectedLocation, selectedJobType, selectedKeywords]);
 
   const handlePostJobSubmit = async (data: PostJobFormData) => {
     setIsSubmittingJob(true);
@@ -208,21 +201,7 @@ export default function JobsPage() {
         <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center"><Filter className="mr-2 h-5 w-5"/>Filter Options</CardTitle>
         </CardHeader>
-        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 items-end">
-          <div>
-            <Label htmlFor="search">Search Keywords</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input 
-                id="search" 
-                placeholder="Job title, company, description..." 
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-          
+        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 items-end">
           <div>
             <Label htmlFor="titleFilter">Job Title</Label>
             <Select value={selectedTitle} onValueChange={setSelectedTitle}>
@@ -253,7 +232,7 @@ export default function JobsPage() {
               </SelectContent>
             </Select>
           </div>
-           <div className="md:col-span-2 lg:col-span-2 xl:col-span-4">
+           <div className="md:col-span-2 lg:col-span-3 xl:col-span-3">
             <Label>Skills/Keywords</Label>
             <Popover>
                 <PopoverTrigger asChild>
