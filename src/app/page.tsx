@@ -1,9 +1,21 @@
 
+"use client"; // Required for charts and client-side interactions
+
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route, TrendingUp, Star } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Progress } from "@/components/ui/progress";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts";
+import { useEffect, useState } from 'react';
+
 
 const features = [
   {
@@ -44,7 +56,46 @@ const features = [
   },
 ];
 
+const weeklyProgressData = [
+  { day: "Mon", tasksCompleted: 2, hoursStudied: 1.5 },
+  { day: "Tue", tasksCompleted: 3, hoursStudied: 2 },
+  { day: "Wed", tasksCompleted: 1, hoursStudied: 1 },
+  { day: "Thu", tasksCompleted: 4, hoursStudied: 2.5 },
+  { day: "Fri", tasksCompleted: 2, hoursStudied: 1.5 },
+  { day: "Sat", tasksCompleted: 5, hoursStudied: 3 },
+  { day: "Sun", tasksCompleted: 1, hoursStudied: 0.5 },
+];
+
+const chartConfig = {
+  tasksCompleted: {
+    label: "Tasks Completed",
+    color: "hsl(var(--chart-1))",
+  },
+  hoursStudied: {
+    label: "Hours Studied",
+    color: "hsl(var(--chart-2))",
+  },
+} satisfies ChartConfig;
+
+const motivationalMessages = [
+  "Keep up the great work! Every step forward counts.",
+  "You're making fantastic progress! Stay focused.",
+  "Believe in yourself! Your efforts are paying off.",
+  "Each day is a new opportunity to learn and grow.",
+  "Success is the sum of small efforts, repeated day in and day out."
+];
+
 export default function HomePage() {
+  const [overallProgress, setOverallProgress] = useState(0);
+  const [currentMotivationalMessage, setCurrentMotivationalMessage] = useState("");
+
+  useEffect(() => {
+    // Simulate fetching or calculating progress for non-logged-in user
+    // For demonstration, we'll set a static value and pick a random message
+    setOverallProgress(65); 
+    setCurrentMotivationalMessage(motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]);
+  }, []);
+
   return (
     <div className="flex flex-col items-center">
       <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-br from-primary/10 via-background to-accent/10">
@@ -55,13 +106,87 @@ export default function HomePage() {
           <p className="mx-auto max-w-[700px] text-foreground/80 md:text-xl mt-4 font-body">
             Your Bridge to a Brighter Future. Empowering Karnataka's Polytechnic Talent.
           </p>
-          <div className="mt-8 space-x-4">
+          <div className="mt-8 space-x-0 space-y-4 sm:space-y-0 sm:space-x-4 flex flex-col sm:flex-row justify-center items-center">
             <Button size="lg" asChild>
               <Link href="/signup">Get Started</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="/#features-section">Explore Opportunities</Link>
             </Button>
+            <Button size="lg" variant="secondary" asChild>
+              <Link href="/#progress-tracker-section">Track Your Progress</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section id="progress-tracker-section" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20">
+        <div className="container px-4 md:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl font-headline">
+              Track Your Daily Progress
+            </h2>
+            <p className="mx-auto max-w-[700px] text-foreground/70 md:text-xl mt-4 font-body">
+              Visualize your learning journey and stay motivated! This is a sample tracker. Log in for personalized progress.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <Card className="lg:col-span-2 shadow-lg">
+              <CardHeader>
+                <CardTitle className="font-headline flex items-center">
+                    <TrendingUp className="mr-2 h-6 w-6 text-primary"/>
+                    Sample Weekly Activity
+                </CardTitle>
+                <CardDescription>Tasks completed and hours studied this week (sample data).</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[350px] w-full">
+                <ChartContainer config={chartConfig} className="w-full h-full">
+                  <BarChart accessibilityLayer data={weeklyProgressData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="day"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      tickFormatter={(value) => value.slice(0, 3)}
+                    />
+                    <YAxis tickLine={false} axisLine={false} tickMargin={10} />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="dot" />}
+                    />
+                    <Bar dataKey="tasksCompleted" fill="var(--color-tasksCompleted)" radius={4} />
+                    <Bar dataKey="hoursStudied" fill="var(--color-hoursStudied)" radius={4} />
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle className="font-headline flex items-center">
+                    <Star className="mr-2 h-6 w-6 text-accent"/>
+                    Overall Goal
+                </CardTitle>
+                <CardDescription>Your simulated progress towards course completion.</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <div className="my-6">
+                    <Progress value={overallProgress} className="h-3 mb-2" />
+                    <p className="text-3xl font-bold text-primary">{overallProgress}%</p>
+                    <p className="text-sm text-muted-foreground">Course Completion (Sample)</p>
+                </div>
+                <div className="mt-6 p-4 bg-accent/10 rounded-md">
+                    <p className="text-sm font-semibold text-accent-foreground mb-1">Motivational Tip:</p>
+                    <p className="text-xs text-accent-foreground/80 italic">
+                        "{currentMotivationalMessage}"
+                    </p>
+                </div>
+                 <Button variant="outline" className="mt-6 w-full" asChild>
+                    <Link href="/course-progress">View Full Learning Map</Link>
+                 </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
@@ -95,7 +220,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-secondary/30">
+      <section className="w-full py-12 md:py-24 lg:py-32 bg-primary/5">
         <div className="container grid items-center gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-12">
           <Image
             src="https://placehold.co/600x400.png"
@@ -118,7 +243,7 @@ export default function HomePage() {
               </p>
             </div>
             <Button asChild className="w-fit">
-              <Link href="/industry-partner">Become an Industry Partner</Link>
+              <Link href="/jobs">Become an Industry Partner</Link>
             </Button>
           </div>
         </div>
