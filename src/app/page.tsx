@@ -237,9 +237,9 @@ export default function HomePage() {
       <section className="w-full py-12 md:py-24 lg:py-32 bg-primary/5">
         <div className="container grid items-center gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-12">
           <Image
-            src="https://placehold.co/600x400.png"
-            alt="Students collaborating"
-            data-ai-hint="students collaboration"
+            src="https://images.unsplash.com/photo-1617777938240-9a1d8e51a47d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxQYXJ0bmVyJTIwd2l0aCUyMEVtZXJnaW5nJTIwVGFsZW50JTIwaW4lMjBhJTIwc29mdHdhcmUlMjBkZXZlbG9wZXJ8ZW58MHx8fHwxNzQ4ODk0OTIyfDA&ixlib=rb-4.1.0&q=80&w=1080"
+            alt="Partner with Emerging Talent"
+            data-ai-hint="partner talent"
             width={600}
             height={400}
             className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full lg:order-last"
