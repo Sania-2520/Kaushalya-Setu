@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge"; // Added import
 import { PlusCircle, Target, Edit3, Trash2, CheckCircle2, Circle, CalendarIcon, Lightbulb } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
