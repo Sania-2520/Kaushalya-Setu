@@ -2,9 +2,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Circle, Milestone, Route } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CheckCircle2, Circle, Milestone, Route, TrendingUp, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis } from "recharts";
 
 interface Lesson {
   id: string;
@@ -79,8 +87,40 @@ const initialCourseData: Course = {
   ],
 };
 
+const weeklyProgressData = [
+  { day: "Mon", tasksCompleted: 2, hoursStudied: 1.5 },
+  { day: "Tue", tasksCompleted: 3, hoursStudied: 2 },
+  { day: "Wed", tasksCompleted: 1, hoursStudied: 1 },
+  { day: "Thu", tasksCompleted: 4, hoursStudied: 2.5 },
+  { day: "Fri", tasksCompleted: 2, hoursStudied: 1.5 },
+  { day: "Sat", tasksCompleted: 5, hoursStudied: 3 },
+  { day: "Sun", tasksCompleted: 1, hoursStudied: 0.5 },
+];
+
+const chartConfig = {
+  tasksCompleted: {
+    label: "Tasks Completed",
+    color: "hsl(var(--chart-1))",
+  },
+  hoursStudied: {
+    label: "Hours Studied",
+    color: "hsl(var(--chart-2))",
+  },
+} satisfies ChartConfig;
+
+const motivationalMessages = [
+  "Keep up the great work! Every step forward counts.",
+  "You're making fantastic progress! Stay focused.",
+  "Believe in yourself! Your efforts are paying off.",
+  "Each day is a new opportunity to learn and grow.",
+  "Success is the sum of small efforts, repeated day in and day out."
+];
+
+
 export default function CourseProgressPage() {
   const [course, setCourse] = useState<Course | null>(null);
+  const [overallProgress, setOverallProgress] = useState(0);
+  const [currentMotivationalMessage, setCurrentMotivationalMessage] = useState("");
 
   useEffect(() => {
     // Simulate fetching course data
@@ -89,6 +129,10 @@ export default function CourseProgressPage() {
       isCompleted: module.lessons.every(lesson => lesson.isCompleted)
     }));
     setCourse({...initialCourseData, modules: updatedModules});
+
+    // Simulate overall progress for the daily insights section
+    setOverallProgress(72); // Example static value
+    setCurrentMotivationalMessage(motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]);
   }, []);
 
   if (!course) {
@@ -177,6 +221,67 @@ export default function CourseProgressPage() {
             </p>
         </CardContent>
        </Card>
+
+       {/* Daily Progress Insights Section */}
+        <section className="space-y-6 pt-8 border-t">
+            <h2 className="text-2xl font-semibold font-headline text-center">Your Daily Learning Insights</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <Card className="lg:col-span-2 shadow-lg">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center">
+                        <TrendingUp className="mr-2 h-6 w-6 text-primary"/>
+                        Daily Activity (Sample for this Week)
+                    </CardTitle>
+                    <CardDescription>Overview of tasks completed and study hours (sample data).</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[350px] w-full">
+                    <ChartContainer config={chartConfig} className="w-full h-full">
+                    <BarChart accessibilityLayer data={weeklyProgressData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                        <XAxis
+                        dataKey="day"
+                        tickLine={false}
+                        tickMargin={10}
+                        axisLine={false}
+                        tickFormatter={(value) => value.slice(0, 3)}
+                        />
+                        <YAxis tickLine={false} axisLine={false} tickMargin={10} />
+                        <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent indicator="dot" />}
+                        />
+                        <Bar dataKey="tasksCompleted" fill="var(--color-tasksCompleted)" radius={4} />
+                        <Bar dataKey="hoursStudied" fill="var(--color-hoursStudied)" radius={4} />
+                    </BarChart>
+                    </ChartContainer>
+                </CardContent>
+                </Card>
+                
+                <Card className="shadow-lg">
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center">
+                        <Star className="mr-2 h-6 w-6 text-accent"/>
+                        Your Momentum
+                    </CardTitle>
+                    <CardDescription>Your simulated overall progress and motivation.</CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                    <div className="my-6">
+                        <Progress value={overallProgress} className="h-3 mb-2" />
+                        <p className="text-3xl font-bold text-primary">{overallProgress}%</p>
+                        <p className="text-sm text-muted-foreground">Overall Engagement (Sample)</p>
+                    </div>
+                    <div className="mt-6 p-4 bg-accent/10 rounded-md">
+                        <p className="text-sm font-semibold text-accent-foreground mb-1">Stay Motivated:</p>
+                        <p className="text-xs text-accent-foreground/80 italic">
+                            "{currentMotivationalMessage}"
+                        </p>
+                    </div>
+                </CardContent>
+                </Card>
+            </div>
+        </section>
     </div>
   );
 }
+
+    
