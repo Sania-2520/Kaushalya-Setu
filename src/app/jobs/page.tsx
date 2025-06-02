@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { JOB_TITLES, INDIAN_CITIES, IT_KEYWORDS, JOB_TYPES, ALL_FILTER_VALUE } from '@/lib/constants';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 interface Job {
   id: string;
@@ -29,7 +30,7 @@ interface Job {
   location: string;
   type: string;
   description: string;
-  skills: string[]; // Changed from skillsRequired for consistency with constants
+  skills: string[];
   postedDate: Date;
   salary?: string;
 }
@@ -463,3 +464,4 @@ function JobCardSkeleton() {
     </Card>
   );
 }
+
