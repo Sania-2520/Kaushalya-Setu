@@ -1,4 +1,3 @@
-
 // src/app/knowledge-base/page.tsx
 "use client";
 
@@ -52,7 +51,7 @@ export default function KnowledgeBasePage() {
             </p>
             <div className="mt-6">
                 <Image
-                    src="https://images.unsplash.com/photo-1604933834413-4cbe62737214?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxOHx8bGVhcm5pbmclMjBhZHZlbnR1cmUlMjB1c2luZyUyMGFpfGVufDB8fHx8MTc0ODkyOTgyMHww&ixlib=rb-4.1.0&q=80&w=1080"
+                    src="https://images.unsplash.com/photo-1677695154167-b59e10b473be?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxsZWFybmluZyUyMGFkdmVudHVyZXxlbnwwfHx8fDE3NDg5Mjk4MDR8MA&ixlib=rb-4.1.0&q=80&w=1080"
                     alt="Learning Adventure"
                     width={600}
                     height={300}
