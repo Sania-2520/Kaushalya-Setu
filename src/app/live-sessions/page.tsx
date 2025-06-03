@@ -1,17 +1,19 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, Clock, MessageSquare, Send, Star, User, Video, Presentation } from "lucide-react";
+import { CalendarDays, Clock, MessageSquare, Send, Star, User, Video, Presentation, Layers } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from '@/components/ui/label';
 
 interface Session {
   id: string;
@@ -23,6 +25,7 @@ interface Session {
   durationMinutes: number;
   description: string;
   tags: string[];
+  domain: string; // Added domain field
   platformLink?: string;
   coverImage?: string;
   isLive?: boolean;
@@ -42,6 +45,8 @@ interface QnAItem {
   answerTimestamp?: Date;
 }
 
+const ALL_DOMAINS_FILTER = "All Domains";
+
 const generateInitialSessions = (): Session[] => [
   {
     id: "1",
@@ -52,7 +57,8 @@ const generateInitialSessions = (): Session[] => [
     dateTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
     durationMinutes: 60,
     description: "Deep dive into React Hooks, best practices, and advanced patterns. Suitable for intermediate developers.",
-    tags: ["React", "Frontend", "JavaScript", "Web Development"],
+    tags: ["React", "Frontend", "JavaScript"],
+    domain: "Web Development",
     coverImage: "https://placehold.co/600x300.png?text=React+Hooks+Webinar",
     isLive: false,
     attendees: 120,
@@ -69,6 +75,7 @@ const generateInitialSessions = (): Session[] => [
     durationMinutes: 90,
     description: "Learn how to design and build robust, scalable APIs using Node.js, Express, and microservices architecture.",
     tags: ["Node.js", "Backend", "API", "Microservices"],
+    domain: "Backend Development",
     coverImage: "https://placehold.co/600x300.png?text=Node.js+API+Workshop",
     isLive: false,
     attendees: 250,
@@ -85,9 +92,41 @@ const generateInitialSessions = (): Session[] => [
     durationMinutes: 45,
     description: "Understand the fundamental principles of UI/UX design to create user-friendly and engaging digital products.",
     tags: ["UI/UX", "Design", "User Experience"],
+    domain: "UI/UX Design",
     coverImage: "https://placehold.co/600x300.png?text=UI/UX+Design+Talk",
     isLive: false,
     attendees: 0, // Upcoming
+  },
+  {
+    id: "4",
+    title: "AI Fundamentals for Developers",
+    speaker: "Dr. AI Expert",
+    speakerRole: "AI Research Scientist",
+    speakerAvatar: "https://placehold.co/100x100.png?text=AI",
+    dateTime: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+    durationMinutes: 75,
+    description: "An overview of Artificial Intelligence concepts, machine learning basics, and how developers can integrate AI into their projects.",
+    tags: ["AI", "Machine Learning", "Development"],
+    domain: "Artificial Intelligence",
+    coverImage: "https://placehold.co/600x300.png?text=AI+Fundamentals",
+    isLive: false,
+  },
+   {
+    id: "5",
+    title: "Cloud Native Architectures on AWS",
+    speaker: "CloudGuru Sam",
+    speakerRole: "AWS Solutions Architect",
+    speakerAvatar: "https://placehold.co/100x100.png?text=CS",
+    dateTime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+    durationMinutes: 90,
+    description: "Explore best practices for building and deploying cloud-native applications on Amazon Web Services.",
+    tags: ["AWS", "Cloud Computing", "Architecture"],
+    domain: "Cloud Computing",
+    coverImage: "https://placehold.co/600x300.png?text=AWS+Cloud+Native",
+    isLive: false,
+    attendees: 180,
+    rating: 4.7,
+    totalRatings: 120,
   },
 ];
 
@@ -98,7 +137,7 @@ const generateInitialQnA = (): QnAItem[] => [
         question: 'What is the best way to manage state in large React applications?',
         timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
         answer: 'Consider using context API for simpler cases, or Redux/Zustand for more complex state management.',
-        answeredBy: 'Jane Doe', // Should match a speaker for consistency
+        answeredBy: 'Jane Doe', 
         answerTimestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
     },
     {
@@ -116,50 +155,73 @@ export default function WebinarsPage() {
   const [qnaItems, setQnaItems] = useState<QnAItem[]>([]);
   const [newQuestion, setNewQuestion] = useState("");
   const [userRating, setUserRating] = useState(0);
+  const [selectedDomain, setSelectedDomain] = useState<string>(ALL_DOMAINS_FILTER);
 
   useEffect(() => {
     const initialSessionsData = generateInitialSessions();
     setSessions(initialSessionsData);
     setQnaItems(generateInitialQnA());
-    if (initialSessionsData.length > 0) {
+    // Auto-select the first upcoming session if available, otherwise first overall
+    const firstUpcoming = initialSessionsData.find(s => s.dateTime > new Date() && !s.isLive);
+    if (firstUpcoming) {
+      setSelectedSession(firstUpcoming);
+    } else if (initialSessionsData.length > 0) {
       setSelectedSession(initialSessionsData[0]);
     }
   }, []);
+  
+  const uniqueDomains = useMemo(() => {
+    const domains = new Set(sessions.map(s => s.domain));
+    return [ALL_DOMAINS_FILTER, ...Array.from(domains).sort()];
+  }, [sessions]);
 
-  const upcomingSessions = sessions.filter(s => s.dateTime > new Date() && !s.isLive).sort((a,b) => a.dateTime.getTime() - b.dateTime.getTime());
-  const pastSessions = sessions.filter(s => s.dateTime <= new Date() && !s.isLive).sort((a,b) => b.dateTime.getTime() - a.dateTime.getTime());
-  const liveSessions = sessions.filter(s => s.isLive);
+  const filteredSessionsByDomain = useMemo(() => {
+    if (selectedDomain === ALL_DOMAINS_FILTER) {
+      return sessions;
+    }
+    return sessions.filter(s => s.domain === selectedDomain);
+  }, [sessions, selectedDomain]);
+
+  const upcomingSessions = useMemo(() => {
+    return filteredSessionsByDomain
+      .filter(s => s.dateTime > new Date() && !s.isLive)
+      .sort((a,b) => a.dateTime.getTime() - b.dateTime.getTime());
+  }, [filteredSessionsByDomain]);
+
+  const pastSessions = useMemo(() => {
+    return filteredSessionsByDomain
+      .filter(s => s.dateTime <= new Date() && !s.isLive)
+      .sort((a,b) => b.dateTime.getTime() - a.dateTime.getTime());
+  }, [filteredSessionsByDomain]);
+  
+  const liveSessions = useMemo(() => {
+    return filteredSessionsByDomain.filter(s => s.isLive);
+  }, [filteredSessionsByDomain]);
+
 
   const handleAskQuestion = () => {
     if (newQuestion.trim() === "") return;
     const question: QnAItem = {
       id: `q${Date.now()}`,
-      user: "Current User", // Replace with actual user
+      user: "Current User", 
       question: newQuestion,
       timestamp: new Date(),
     };
     setQnaItems([question, ...qnaItems]);
     setNewQuestion("");
-    // Simulate sending question to backend
   };
 
   const handleRateSession = (rating: number) => {
     setUserRating(rating);
-    // Simulate submitting rating
     if(selectedSession){
-        // This would typically be an API call to update the session's average rating
         const newTotalRatings = (selectedSession.totalRatings || 0) + 1;
         const newAverageRating = ((selectedSession.rating || 0) * (selectedSession.totalRatings || 0) + rating) / newTotalRatings;
         
-        setSelectedSession(prev => prev ? {
-            ...prev, 
-            rating: newAverageRating, 
-            totalRatings: newTotalRatings
-        } : null);
+        const updatedSession = {...selectedSession, rating: newAverageRating, totalRatings: newTotalRatings};
+        setSelectedSession(updatedSession);
         
-        // Also update in the main sessions list if needed for persistence across selections
         setSessions(prevSessions => prevSessions.map(s => 
-            s.id === selectedSession.id ? {...s, rating: newAverageRating, totalRatings: newTotalRatings} : s
+            s.id === selectedSession.id ? updatedSession : s
         ));
     }
   };
@@ -171,27 +233,42 @@ export default function WebinarsPage() {
         <h2 className="text-2xl font-semibold font-headline flex items-center">
           <Presentation className="mr-2 h-6 w-6 text-primary" /> Webinars
         </h2>
+        
+        <div className="space-y-2">
+            <Label htmlFor="domainFilter" className="text-sm font-medium">Filter by Domain</Label>
+            <Select value={selectedDomain} onValueChange={setSelectedDomain}>
+                <SelectTrigger id="domainFilter">
+                    <SelectValue placeholder="Select domain" />
+                </SelectTrigger>
+                <SelectContent>
+                    {uniqueDomains.map(domain => (
+                        <SelectItem key={domain} value={domain}>{domain}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+
         <Tabs defaultValue="upcoming">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="upcoming">Upcoming ({upcomingSessions.length})</TabsTrigger>
             <TabsTrigger value="live">Live ({liveSessions.length})</TabsTrigger>
-            <TabsTrigger value="past">Past</TabsTrigger>
+            <TabsTrigger value="past">Past ({pastSessions.length})</TabsTrigger>
           </TabsList>
-          <ScrollArea className="h-[calc(100vh-250px)] mt-4 pr-3">
+          <ScrollArea className="h-[calc(100vh-320px)] mt-4 pr-3"> {/* Adjusted height for filter */}
             <TabsContent value="upcoming" className="space-y-4">
               {upcomingSessions.length > 0 ? upcomingSessions.map(session => (
                 <SessionListItem key={session.id} session={session} onSelect={setSelectedSession} isSelected={selectedSession?.id === session.id} />
-              )) : <p className="text-muted-foreground p-4 text-center">No upcoming webinars.</p>}
+              )) : <p className="text-muted-foreground p-4 text-center">No upcoming webinars {selectedDomain !== ALL_DOMAINS_FILTER ? `in ${selectedDomain}` : ''}.</p>}
             </TabsContent>
             <TabsContent value="live" className="space-y-4">
               {liveSessions.length > 0 ? liveSessions.map(session => (
                 <SessionListItem key={session.id} session={session} onSelect={setSelectedSession} isSelected={selectedSession?.id === session.id} />
-              )) : <p className="text-muted-foreground p-4 text-center">No webinars currently live.</p>}
+              )) : <p className="text-muted-foreground p-4 text-center">No webinars currently live {selectedDomain !== ALL_DOMAINS_FILTER ? `in ${selectedDomain}` : ''}.</p>}
             </TabsContent>
             <TabsContent value="past" className="space-y-4">
               {pastSessions.length > 0 ? pastSessions.map(session => (
                 <SessionListItem key={session.id} session={session} onSelect={setSelectedSession} isSelected={selectedSession?.id === session.id} />
-              )) : <p className="text-muted-foreground p-4 text-center">No past webinars found.</p>}
+              )) : <p className="text-muted-foreground p-4 text-center">No past webinars found {selectedDomain !== ALL_DOMAINS_FILTER ? `in ${selectedDomain}` : ''}.</p>}
             </TabsContent>
           </ScrollArea>
         </Tabs>
@@ -202,7 +279,7 @@ export default function WebinarsPage() {
           <Card className="overflow-hidden shadow-lg">
             {selectedSession.coverImage && (
               <div className="aspect-video relative">
-                <Image src={selectedSession.coverImage} alt={selectedSession.title} layout="fill" objectFit="cover" data-ai-hint="webinar technology" />
+                <Image src={selectedSession.coverImage} alt={selectedSession.title} layout="fill" objectFit="cover" data-ai-hint="webinar technology"/>
                 {selectedSession.isLive && (
                   <Badge className="absolute top-4 left-4 bg-red-500 text-white animate-pulse">LIVE</Badge>
                 )}
@@ -210,13 +287,16 @@ export default function WebinarsPage() {
             )}
             <CardHeader>
               <CardTitle className="text-2xl font-bold font-headline">{selectedSession.title}</CardTitle>
+              <div className="flex items-center space-x-1 text-xs text-muted-foreground mt-1">
+                  <Layers className="h-3.5 w-3.5" /> <span>Domain: {selectedSession.domain}</span>
+              </div>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
                 <CalendarDays className="h-4 w-4" /> <span>{selectedSession.dateTime.toLocaleDateString()}</span>
                 <Clock className="h-4 w-4" /> <span>{selectedSession.dateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({selectedSession.durationMinutes} mins)</span>
               </div>
               <div className="flex items-center space-x-2 mt-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={selectedSession.speakerAvatar} alt={selectedSession.speaker} data-ai-hint="speaker portrait" />
+                  <AvatarImage src={selectedSession.speakerAvatar} alt={selectedSession.speaker} data-ai-hint="speaker portrait"/>
                   <AvatarFallback>{selectedSession.speaker.substring(0,2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -261,7 +341,6 @@ export default function WebinarsPage() {
               {selectedSession.attendees && selectedSession.attendees > 0 && <p className="text-sm text-muted-foreground">{selectedSession.attendees} attendees</p>}
             </CardFooter>
 
-            {/* Q&A Section */}
             <div className="p-6 border-t">
                 <h3 className="text-xl font-semibold mb-4 font-headline flex items-center"><MessageSquare className="h-5 w-5 mr-2 text-primary" /> Q&A Forum</h3>
                 <div className="space-y-3 mb-4">
@@ -280,7 +359,7 @@ export default function WebinarsPage() {
                         <div key={q.id} className="mb-4 p-3 border rounded-lg bg-card hover:shadow-sm transition-shadow">
                             <div className="flex items-start space-x-3">
                                 <Avatar className="h-8 w-8 mt-1">
-                                    <AvatarImage src={q.userAvatar || `https://placehold.co/40x40.png?text=${q.user.substring(0,1)}`} data-ai-hint="user avatar" />
+                                    <AvatarImage src={q.userAvatar || `https://placehold.co/40x40.png?text=${q.user.substring(0,1)}`} data-ai-hint="user avatar"/>
                                     <AvatarFallback>{q.user.substring(0,1)}</AvatarFallback>
                                 </Avatar>
                                 <div>
@@ -292,7 +371,7 @@ export default function WebinarsPage() {
                                 <div className="mt-2 ml-6 pl-5 border-l border-primary/50">
                                      <div className="flex items-start space-x-3">
                                         <Avatar className="h-8 w-8 mt-1">
-                                            <AvatarImage src={(selectedSession?.speakerAvatar && q.answeredBy === selectedSession.speaker) ? selectedSession.speakerAvatar : `https://placehold.co/40x40.png?text=${(q.answeredBy || 'S').substring(0,1)}`} data-ai-hint="speaker avatar" />
+                                            <AvatarImage src={(selectedSession?.speakerAvatar && q.answeredBy === selectedSession.speaker) ? selectedSession.speakerAvatar : `https://placehold.co/40x40.png?text=${(q.answeredBy || 'S').substring(0,1)}`} data-ai-hint="speaker avatar"/>
                                             <AvatarFallback>{(q.answeredBy || selectedSession?.speaker || 'S').substring(0,1)}</AvatarFallback>
                                         </Avatar>
                                         <div>
@@ -335,12 +414,12 @@ function SessionListItem({ session, onSelect, isSelected }: SessionListItemProps
       <CardContent className="p-3">
         <div className="flex items-start space-x-3">
           <Avatar className="h-12 w-12 rounded-md">
-            <AvatarImage src={session.speakerAvatar} alt={session.speaker} data-ai-hint="speaker avatar small" />
+            <AvatarImage src={session.speakerAvatar} alt={session.speaker} data-ai-hint="speaker avatar small"/>
             <AvatarFallback className="rounded-md">{session.speaker.substring(0,2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <h4 className="font-semibold text-sm line-clamp-1">{session.title}</h4>
-            <p className="text-xs text-muted-foreground line-clamp-1">{session.speaker}</p>
+            <p className="text-xs text-muted-foreground line-clamp-1">{session.speaker} - {session.domain}</p>
             <div className="text-xs text-muted-foreground mt-1 flex items-center">
               <CalendarDays className="h-3 w-3 mr-1" /> {session.dateTime.toLocaleDateString([], {month: 'short', day: 'numeric'})}
               <Clock className="h-3 w-3 mr-1 ml-2" /> {session.dateTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
@@ -352,3 +431,6 @@ function SessionListItem({ session, onSelect, isSelected }: SessionListItemProps
     </Card>
   )
 }
+
+
+    
