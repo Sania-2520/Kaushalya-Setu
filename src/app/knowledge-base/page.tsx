@@ -13,7 +13,7 @@ export default function KnowledgeBasePage() {
     <div className="space-y-8">
       <div className="flex flex-col items-center text-center">
          <BookOpenText className="h-16 w-16 text-primary mb-4" />
-        <h1 className="text-4xl font-bold tracking-tight font-headline text-primary">
+        <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-primary">
           Knowledge Base Explorer
         </h1>
         <p className="mt-3 max-w-2xl text-lg text-foreground/80 font-body">
@@ -51,8 +51,8 @@ export default function KnowledgeBasePage() {
                 Each sector offers a unique, gamified learning map. Complete courses, earn (conceptual) badges, and master new skills!
             </p>
             <div className="mt-6">
-                <Image 
-                    src="https://placehold.co/600x300.png?text=Learning+Adventure"
+                <Image
+                    src="https://images.unsplash.com/photo-1604933834413-4cbe62737214?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxOHx8bGVhcm5pbmclMjBhZHZlbnR1cmUlMjB1c2luZyUyMGFpfGVufDB8fHx8MTc0ODkyOTgyMHww&ixlib=rb-4.1.0&q=80&w=1080"
                     alt="Learning Adventure"
                     width={600}
                     height={300}
