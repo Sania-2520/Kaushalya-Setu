@@ -89,7 +89,6 @@ export default function JobsPage() {
       const jobList = jobSnapshot.docs.map(docInstance => {
         const data = docInstance.data();
         
-        // Ensure skills is an array, defaulting to empty if malformed or missing
         const skillsArray = Array.isArray(data.skills) ? data.skills : 
                             (typeof data.skills === 'string' ? data.skills.split(',').map(s => s.trim()).filter(Boolean) : []);
         
@@ -149,11 +148,20 @@ export default function JobsPage() {
 
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
-      const jobSkills = Array.isArray(job.skills) ? job.skills : []; // Defensive check, though fetchJobs should handle it
+      const jobSkills = Array.isArray(job.skills) ? job.skills : [];
       
-      const matchesTitle = selectedTitle === ALL_FILTER_VALUE || job.title === selectedTitle;
-      const matchesLocation = selectedLocation === ALL_FILTER_VALUE || job.location === selectedLocation;
-      const matchesJobType = selectedJobType === ALL_FILTER_VALUE || job.type === selectedJobType;
+      // Prepare lowercase versions for case-insensitive comparison
+      const jobTitleLower = (job.title || "").toLowerCase();
+      const jobLocationLower = (job.location || "").toLowerCase();
+      const jobTypeLower = (job.type || "").toLowerCase();
+      
+      const selectedTitleLower = selectedTitle === ALL_FILTER_VALUE ? ALL_FILTER_VALUE : selectedTitle.toLowerCase();
+      const selectedLocationLower = selectedLocation === ALL_FILTER_VALUE ? ALL_FILTER_VALUE : selectedLocation.toLowerCase();
+      const selectedJobTypeLower = selectedJobType === ALL_FILTER_VALUE ? ALL_FILTER_VALUE : selectedJobType.toLowerCase();
+
+      const matchesTitle = selectedTitleLower === ALL_FILTER_VALUE || jobTitleLower === selectedTitleLower;
+      const matchesLocation = selectedLocationLower === ALL_FILTER_VALUE || jobLocationLower === selectedLocationLower;
+      const matchesJobType = selectedJobTypeLower === ALL_FILTER_VALUE || jobTypeLower === selectedJobTypeLower;
       
       const matchesKeywords = selectedKeywords.length === 0 || selectedKeywords.every(keyword => 
         jobSkills.some(skill => typeof skill === 'string' && skill.toLowerCase().includes(keyword.toLowerCase()))
