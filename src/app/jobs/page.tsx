@@ -86,12 +86,24 @@ export default function JobsPage() {
       const jobsCollection = collection(db, 'jobs');
       const q = firestoreQuery(jobsCollection, orderBy('postedDate', 'desc'));
       const jobSnapshot = await getDocs(q);
-      const jobList = jobSnapshot.docs.map(doc => {
-        const data = doc.data();
+      const jobList = jobSnapshot.docs.map(docInstance => {
+        const data = docInstance.data();
+        
+        // Ensure skills is an array, defaulting to empty if malformed or missing
+        const skillsArray = Array.isArray(data.skills) ? data.skills : 
+                            (typeof data.skills === 'string' ? data.skills.split(',').map(s => s.trim()).filter(Boolean) : []);
+        
         return {
-          id: doc.id,
-          ...data,
+          id: docInstance.id,
+          title: data.title || "Untitled Job",
+          company: data.company || "Unknown Company",
+          companyLogo: data.companyLogo || undefined,
+          location: data.location || "Not Specified",
+          type: data.type || "Not Specified",
+          description: data.description || "No description available.",
+          skills: skillsArray,
           postedDate: (data.postedDate as Timestamp)?.toDate ? (data.postedDate as Timestamp).toDate() : new Date(),
+          salary: data.salary || undefined,
         } as Job;
       });
       setJobs(jobList);
@@ -137,11 +149,15 @@ export default function JobsPage() {
 
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
+      const jobSkills = Array.isArray(job.skills) ? job.skills : []; // Defensive check, though fetchJobs should handle it
+      
       const matchesTitle = selectedTitle === ALL_FILTER_VALUE || job.title === selectedTitle;
       const matchesLocation = selectedLocation === ALL_FILTER_VALUE || job.location === selectedLocation;
       const matchesJobType = selectedJobType === ALL_FILTER_VALUE || job.type === selectedJobType;
       
-      const matchesKeywords = selectedKeywords.length === 0 || selectedKeywords.every(keyword => job.skills.some(skill => skill.toLowerCase().includes(keyword.toLowerCase())));
+      const matchesKeywords = selectedKeywords.length === 0 || selectedKeywords.every(keyword => 
+        jobSkills.some(skill => typeof skill === 'string' && skill.toLowerCase().includes(keyword.toLowerCase()))
+      );
 
       return matchesTitle && matchesLocation && matchesJobType && matchesKeywords;
     });
@@ -161,7 +177,7 @@ export default function JobsPage() {
       const newJobWithId: Job = {
         ...data,
         id: docRef.id,
-        postedDate: new Date(), // Approximate, Firestore will set actual server timestamp
+        postedDate: new Date(), 
       };
       setJobs(prevJobs => [newJobWithId, ...prevJobs]);
 
@@ -411,7 +427,7 @@ export default function JobsPage() {
                                             value={skill}
                                             onSelect={() => {
                                                 toggleNewJobSkill(skill);
-                                                setOpenSkillsPopover(true); // Keep popover open
+                                                setOpenSkillsPopover(true); 
                                             }}
                                         >
                                             <Check
