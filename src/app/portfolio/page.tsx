@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { identifySkills, SkillTaggingInput, SkillTaggingOutput } from '@/ai/flows/skill-tagging';
 import { useToast } from "@/hooks/use-toast";
-import { format } from 'date-fns';
+import { format, parseISO } from "date-fns";
 
 interface Project {
   id: string;
@@ -25,6 +25,8 @@ interface Project {
   skills: string[];
   uploadedAt: Date;
 }
+
+const LOCAL_STORAGE_PROJECTS_KEY = "KAUSHALYA_SETU_PORTFOLIO_PROJECTS_V1";
 
 const initialProjects: Project[] = [
   {
@@ -48,7 +50,7 @@ const initialProjects: Project[] = [
 ];
 
 export default function PortfolioPage() {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentProject, setCurrentProject] = useState<Partial<Project>>({});
   const [projectDescriptionForTagging, setProjectDescriptionForTagging] = useState("");
@@ -58,9 +60,31 @@ export default function PortfolioPage() {
   const [profileCompletion, setProfileCompletion] = useState(0);
 
   useEffect(() => {
-    const baseCompletion = 20; 
-    const projectBonus = Math.min(projects.length * 15, 60); 
-    const skillsBonus = Math.min(projects.reduce((acc, p) => acc + p.skills.length, 0) * 2, 20); 
+    const storedProjects = localStorage.getItem(LOCAL_STORAGE_PROJECTS_KEY);
+    if (storedProjects) {
+      try {
+        const parsedProjects: Project[] = JSON.parse(storedProjects).map((project: any) => ({
+          ...project,
+          uploadedAt: parseISO(project.uploadedAt), // Convert string back to Date
+        }));
+        setProjects(parsedProjects);
+      } catch (error) {
+        console.error("Error parsing projects from localStorage", error);
+        setProjects(initialProjects); // Fallback to initial if parsing fails
+      }
+    } else {
+      setProjects(initialProjects);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Avoid saving initial empty array if nothing was loaded and projects haven't been interacted with
+    if (projects.length > 0 || localStorage.getItem(LOCAL_STORAGE_PROJECTS_KEY)) {
+         localStorage.setItem(LOCAL_STORAGE_PROJECTS_KEY, JSON.stringify(projects));
+    }
+    const baseCompletion = 20;
+    const projectBonus = Math.min(projects.length * 15, 60);
+    const skillsBonus = Math.min(projects.reduce((acc, p) => acc + p.skills.length, 0) * 2, 20);
     setProfileCompletion(baseCompletion + projectBonus + skillsBonus);
   }, [projects]);
 
@@ -125,14 +149,14 @@ export default function PortfolioPage() {
       imageUrl: currentProject.imageUrl,
       projectUrl: currentProject.projectUrl,
       skills: currentProject.skills || [],
-      uploadedAt: currentProject.id ? projects.find(p => p.id === currentProject.id)!.uploadedAt : new Date(),
+      uploadedAt: currentProject.id ? (projects.find(p => p.id === currentProject.id)?.uploadedAt || new Date()) : new Date(),
     };
 
     if (currentProject.id) {
       setProjects(projects.map(p => p.id === newProjectData.id ? newProjectData : p));
       toast({ title: "Project Updated", description: `"${newProjectData.title}" has been updated.` });
     } else {
-      setProjects([newProjectData, ...projects]);
+      setProjects(prevProjects => [newProjectData, ...prevProjects]);
       toast({ title: "Project Added", description: `"${newProjectData.title}" has been added to your portfolio.` });
     }
     setIsDialogOpen(false);
@@ -142,7 +166,7 @@ export default function PortfolioPage() {
   };
 
   const openAddProjectDialog = () => {
-    setCurrentProject({});
+    setCurrentProject({ skills: [] }); // Ensure skills is an empty array for new projects
     setProjectDescriptionForTagging("");
     setSuggestedSkills([]);
     setIsDialogOpen(true);
@@ -349,12 +373,11 @@ export default function PortfolioPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmitProject}>Save Project</Button>
+            <Button onClick={handleSubmitProject}>{currentProject.id ? "Save Changes" : "Add Project"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
       
