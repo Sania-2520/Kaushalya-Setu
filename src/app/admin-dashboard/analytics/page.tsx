@@ -11,6 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from "recharts";
+
 
 const kpiData = [
   { title: "Total Students Enrolled", value: "1,250", change: "+50 last month", trend: <TrendingUp className="h-5 w-5 text-green-500" />, icon: <Users2 className="h-8 w-8 text-primary" /> },
@@ -24,6 +32,38 @@ const dummyStudentsForReport = [
     {id: '2', name: 'Priya Patel', email: 'priya@example.com', course: 'Electronics', certifications: 3, portfolioScore: 70, placementStatus: 'Internship', lastActive: '1 day ago'},
     {id: '3', name: 'Rohan Das', email: 'rohan@example.com', course: 'Mechanical', certifications: 1, portfolioScore: 60, placementStatus: 'Seeking', lastActive: '5 days ago'},
 ];
+
+const weeklyLoginsData = [
+  { name: 'Mon', logins: 120, fill: "hsl(var(--chart-1))" },
+  { name: 'Tue', logins: 180, fill: "hsl(var(--chart-1))" },
+  { name: 'Wed', logins: 150, fill: "hsl(var(--chart-1))" },
+  { name: 'Thu', logins: 210, fill: "hsl(var(--chart-1))" },
+  { name: 'Fri', logins: 250, fill: "hsl(var(--chart-1))" },
+  { name: 'Sat', logins: 90, fill: "hsl(var(--chart-1))" },
+  { name: 'Sun', logins: 70, fill: "hsl(var(--chart-1))" },
+];
+
+const activeTimesData = [
+  { time: 'Morning (6-12)', users: 150, fill: "hsl(var(--chart-2))" },
+  { time: 'Afternoon (12-6)', users: 280, fill: "hsl(var(--chart-2))" },
+  { time: 'Evening (6-12)', users: 220, fill: "hsl(var(--chart-2))" },
+  { time: 'Night (12-6)', users: 80, fill: "hsl(var(--chart-2))" },
+];
+
+const pageUsageData = [
+  { page: 'Portfolio', views: 750, fill: "hsl(var(--chart-3))" },
+  { page: 'Jobs', views: 620, fill: "hsl(var(--chart-3))" },
+  { page: 'Webinars', views: 480, fill: "hsl(var(--chart-3))" },
+  { page: 'Certificates', views: 350, fill: "hsl(var(--chart-3))" },
+  { page: 'Resume Tool', views: 290, fill: "hsl(var(--chart-3))" },
+];
+
+const chartConfig = {
+  logins: { label: "Logins", color: "hsl(var(--chart-1))" },
+  users: { label: "Active Users", color: "hsl(var(--chart-2))" },
+  views: { label: "Page Views", color: "hsl(var(--chart-3))" },
+} satisfies ChartConfig;
+
 
 export default function InstitutionalAnalyticsAdminPage() {
   const router = useRouter();
@@ -109,14 +149,53 @@ export default function InstitutionalAnalyticsAdminPage() {
             </div>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="h-64 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-              Placeholder: Daily/Weekly/Monthly Student Logins Chart
+            <div className="h-64 bg-card p-4 rounded-lg border">
+              <h4 className="text-sm font-semibold mb-2 text-center">Weekly Student Logins</h4>
+              <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                <RechartsBarChart data={weeklyLoginsData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                  <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={12} tickLine={false} axisLine={false}/>
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                  <Bar dataKey="logins" radius={4}>
+                     {weeklyLoginsData.map((entry) => (
+                        <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                      ))}
+                  </Bar>
+                </RechartsBarChart>
+              </ChartContainer>
             </div>
-            <div className="h-64 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-              Placeholder: Most Active Times of Day Chart
+             <div className="h-64 bg-card p-4 rounded-lg border">
+              <h4 className="text-sm font-semibold mb-2 text-center">Most Active Times of Day</h4>
+              <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                <RechartsBarChart data={activeTimesData} layout="vertical" margin={{ top: 5, right: 20, left: 25, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
+                  <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis dataKey="time" type="category" fontSize={12} tickLine={false} axisLine={false} width={100} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                  <Bar dataKey="users" radius={4}>
+                     {activeTimesData.map((entry) => (
+                        <Cell key={`cell-${entry.time}`} fill={entry.fill} />
+                      ))}
+                  </Bar>
+                </RechartsBarChart>
+              </ChartContainer>
             </div>
-            <div className="h-64 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-              Placeholder: Page-wise Usage Distribution Chart
+            <div className="h-64 bg-card p-4 rounded-lg border">
+              <h4 className="text-sm font-semibold mb-2 text-center">Top Page Views</h4>
+                <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                    <RechartsBarChart data={pageUsageData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                        <XAxis dataKey="page" fontSize={12} tickLine={false} axisLine={false} interval={0} angle={-20} textAnchor="end" height={40}/>
+                        <YAxis fontSize={12} tickLine={false} axisLine={false}/>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                        <Bar dataKey="views" radius={4}>
+                            {pageUsageData.map((entry) => (
+                                <Cell key={`cell-${entry.page}`} fill={entry.fill} />
+                            ))}
+                        </Bar>
+                    </RechartsBarChart>
+                </ChartContainer>
             </div>
           </div>
         </CardContent>
