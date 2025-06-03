@@ -58,14 +58,16 @@ export default function PortfolioPage() {
   const [isTagging, setIsTagging] = useState(false);
   const { toast } = useToast();
   const [profileCompletion, setProfileCompletion] = useState(0);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
+    setHasMounted(true);
     const storedProjects = localStorage.getItem(LOCAL_STORAGE_PROJECTS_KEY);
     if (storedProjects) {
       try {
         const parsedProjects: Project[] = JSON.parse(storedProjects).map((project: any) => ({
           ...project,
-          uploadedAt: parseISO(project.uploadedAt), // Convert string back to Date
+          uploadedAt: project.uploadedAt ? parseISO(project.uploadedAt) : new Date(), // Convert string back to Date
         }));
         setProjects(parsedProjects);
       } catch (error) {
@@ -84,7 +86,7 @@ export default function PortfolioPage() {
     }
     const baseCompletion = 20;
     const projectBonus = Math.min(projects.length * 15, 60);
-    const skillsBonus = Math.min(projects.reduce((acc, p) => acc + p.skills.length, 0) * 2, 20);
+    const skillsBonus = Math.min(projects.reduce((acc, p) => acc + (p.skills?.length || 0), 0) * 2, 20);
     setProfileCompletion(baseCompletion + projectBonus + skillsBonus);
   }, [projects]);
 
@@ -224,9 +226,13 @@ export default function PortfolioPage() {
              <div className="mt-4">
                 <div className="flex justify-between mb-1">
                     <span className="text-sm font-medium text-primary">Profile Completion</span>
-                    <span className="text-sm font-medium text-primary">{profileCompletion}%</span>
+                    <span className="text-sm font-medium text-primary">{hasMounted ? profileCompletion : 0}%</span>
                 </div>
-                <Progress value={profileCompletion} className="w-full h-2" />
+                {hasMounted ? (
+                    <Progress value={profileCompletion} className="w-full h-2" />
+                ) : (
+                    <Progress value={0} className="w-full h-2" /> 
+                )}
             </div>
         </CardContent>
       </Card>
@@ -238,7 +244,7 @@ export default function PortfolioPage() {
         </Button>
       </div>
 
-      {projects.length === 0 ? (
+      {projects.length === 0 && hasMounted ? (
         <Card className="text-center py-12">
           <CardContent className="flex flex-col items-center space-y-4">
             <Eye className="h-16 w-16 text-muted-foreground" />
@@ -248,6 +254,8 @@ export default function PortfolioPage() {
             </Button>
           </CardContent>
         </Card>
+      ) : !hasMounted && projects.length === 0 ? (
+        <div className="text-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto"/> <p className="mt-2">Loading projects...</p></div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
@@ -260,7 +268,7 @@ export default function PortfolioPage() {
               <CardHeader>
                 <CardTitle className="font-headline">{project.title}</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Uploaded on {format(project.uploadedAt, 'dd MMM yyyy')}
+                  Uploaded on {project.uploadedAt ? format(project.uploadedAt, 'dd MMM yyyy') : 'N/A'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
@@ -268,10 +276,10 @@ export default function PortfolioPage() {
                 <div className="mt-3">
                   <h4 className="text-xs font-semibold mb-1 text-muted-foreground">Skills:</h4>
                   <div className="flex flex-wrap gap-1">
-                    {project.skills.slice(0,5).map((skill) => (
+                    {project.skills?.slice(0,5).map((skill) => (
                       <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
                     ))}
-                    {project.skills.length > 5 && <Badge variant="outline" className="text-xs">+{project.skills.length - 5} more</Badge>}
+                    {project.skills?.length > 5 && <Badge variant="outline" className="text-xs">+{project.skills.length - 5} more</Badge>}
                   </div>
                 </div>
               </CardContent>
@@ -381,3 +389,5 @@ export default function PortfolioPage() {
   );
 }
       
+
+    

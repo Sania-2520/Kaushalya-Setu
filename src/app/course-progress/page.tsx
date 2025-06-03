@@ -17,7 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { TrendingUp, Star, BarChart2, PieChartIcon as ShadCNPieIcon, Activity, Edit3, Trash2, PlusCircle, Target, CalendarIcon, CheckCircle, Award, Clock, Milestone, BookOpen, CheckSquare, Hourglass, Zap } from "lucide-react";
+import { TrendingUp, Star, BarChart2, PieChartIcon as ShadCNPieIcon, Activity, Edit3, Trash2, PlusCircle, Target, CalendarIcon, CheckCircle, Award, Clock, Milestone, BookOpen, CheckSquare, Hourglass, Zap, Loader2 } from "lucide-react";
 
 import {
   ChartContainer,
@@ -125,9 +125,11 @@ export default function MyProgressPage() {
   const [currentGoal, setCurrentGoal] = useState<Partial<Goal>>({});
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const { toast } = useToast();
+  const [hasMounted, setHasMounted] = useState(false);
 
   // Load data from localStorage on mount
   useEffect(() => {
+    setHasMounted(true);
     // Load Certifications
     const storedCerts = localStorage.getItem(LOCAL_STORAGE_KEYS.CERTIFICATIONS);
     if (storedCerts) {
@@ -146,7 +148,7 @@ export default function MyProgressPage() {
     if (storedGoals) {
       const parsedGoals: Goal[] = JSON.parse(storedGoals).map((goal: any) => ({
         ...goal,
-        createdAt: parseISO(goal.createdAt),
+        createdAt: goal.createdAt ? parseISO(goal.createdAt) : new Date(),
         deadline: goal.deadline ? parseISO(goal.deadline) : undefined,
       }));
       setGoals(parsedGoals);
@@ -281,6 +283,15 @@ export default function MyProgressPage() {
     }
   };
 
+  if (!hasMounted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)]">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading your progress...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-12">
       <div className="flex justify-between items-center">
@@ -301,9 +312,9 @@ export default function MyProgressPage() {
             <div>
               <div className="flex justify-between mb-1 text-sm font-medium">
                 <span>Overall Completion</span>
-                <span>{overallCertificationsProgress}%</span>
+                <span>{hasMounted ? overallCertificationsProgress : 0}%</span>
               </div>
-              <Progress value={overallCertificationsProgress} className="h-3" />
+              <Progress value={hasMounted ? overallCertificationsProgress : 0} className="h-3" />
               <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                 <p><CheckSquare className="inline h-3 w-3 mr-1 text-blue-500"/>Started: {certificationsStarted}</p>
                 <p><Hourglass className="inline h-3 w-3 mr-1 text-yellow-500"/>In Progress: {certificationsInProgress}</p>
@@ -535,8 +546,8 @@ export default function MyProgressPage() {
           </CardHeader>
           <CardContent className="text-center">
             <div className="my-6">
-              <Progress value={overallCertificationsProgress} className="h-3 mb-2" />
-              <p className="text-3xl font-bold text-primary">{overallCertificationsProgress}%</p>
+              <Progress value={hasMounted ? overallCertificationsProgress : 0} className="h-3 mb-2" />
+              <p className="text-3xl font-bold text-primary">{hasMounted ? overallCertificationsProgress : 0}%</p>
               <p className="text-sm text-muted-foreground">Overall Engagement</p>
             </div>
             <div className="mt-6 p-4 bg-accent/10 rounded-md">
@@ -598,3 +609,6 @@ export default function MyProgressPage() {
     </div>
   );
 }
+
+
+    
