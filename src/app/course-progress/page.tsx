@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { TrendingUp, Star, BarChart2, PieChartIcon as ShadCNPieIcon, Activity, Edit3, Trash2, PlusCircle, Target, CalendarIcon, CheckCircle, Award, Clock, Milestone, BookOpen, CheckSquare, Hourglass, Zap } from "lucide-react";
@@ -47,6 +47,11 @@ interface Goal {
   status: 'pending' | 'done';
   createdAt: Date;
 }
+
+const LOCAL_STORAGE_KEYS = {
+  CERTIFICATIONS: 'kaushalyaSetu_userCertifications_v1',
+  GOALS: 'kaushalyaSetu_userGoals_v1',
+};
 
 const initialCertifications: Certification[] = [
   { id: 'cert1', title: 'Web Development Bootcamp', domain: 'Web Development', progress: 100, status: 'Completed', dateStarted: new Date(2023, 0, 15), deadline: new Date(2023, 5, 15), badgeEarned: 'Full-Stack Dev' },
@@ -113,21 +118,64 @@ const chartConfig = {
 
 
 export default function MyProgressPage() {
-  const [certifications, setCertifications] = useState<Certification[]>(initialCertifications);
-  const [goals, setGoals] = useState<Goal[]>(initialGoals);
+  const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [currentMotivationalMessage, setCurrentMotivationalMessage] = useState("");
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Partial<Goal>>({});
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Load data from localStorage on mount
   useEffect(() => {
+    // Load Certifications
+    const storedCerts = localStorage.getItem(LOCAL_STORAGE_KEYS.CERTIFICATIONS);
+    if (storedCerts) {
+      const parsedCerts: Certification[] = JSON.parse(storedCerts).map((cert: any) => ({
+        ...cert,
+        dateStarted: cert.dateStarted ? parseISO(cert.dateStarted) : undefined,
+        deadline: cert.deadline ? parseISO(cert.deadline) : undefined,
+      }));
+      setCertifications(parsedCerts);
+    } else {
+      setCertifications(initialCertifications);
+    }
+
+    // Load Goals
+    const storedGoals = localStorage.getItem(LOCAL_STORAGE_KEYS.GOALS);
+    if (storedGoals) {
+      const parsedGoals: Goal[] = JSON.parse(storedGoals).map((goal: any) => ({
+        ...goal,
+        createdAt: parseISO(goal.createdAt),
+        deadline: goal.deadline ? parseISO(goal.deadline) : undefined,
+      }));
+      setGoals(parsedGoals);
+    } else {
+      setGoals(initialGoals);
+    }
+    
     setCurrentMotivationalMessage(motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]);
   }, []);
 
+  // Save certifications to localStorage when they change
+  useEffect(() => {
+    if (certifications.length > 0 || localStorage.getItem(LOCAL_STORAGE_KEYS.CERTIFICATIONS)) { // Avoid saving initial empty array if nothing was loaded
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CERTIFICATIONS, JSON.stringify(certifications));
+    }
+  }, [certifications]);
+
+  // Save goals to localStorage when they change
+  useEffect(() => {
+     if (goals.length > 0 || localStorage.getItem(LOCAL_STORAGE_KEYS.GOALS)) { // Avoid saving initial empty array if nothing was loaded
+        localStorage.setItem(LOCAL_STORAGE_KEYS.GOALS, JSON.stringify(goals));
+    }
+  }, [goals]);
+
+
   const overallCertificationsProgress = useMemo(() => {
+    if (certifications.length === 0) return 0;
     const completedCount = certifications.filter(c => c.status === 'Completed').length;
-    return certifications.length > 0 ? Math.round((completedCount / certifications.length) * 100) : 0;
+    return Math.round((completedCount / certifications.length) * 100);
   }, [certifications]);
 
   const certificationsStarted = useMemo(() => certifications.filter(c => c.status !== 'Not Started').length, [certifications]);
@@ -188,7 +236,7 @@ export default function MyProgressPage() {
         status: "pending",
         createdAt: new Date(),
       };
-      setGoals([newGoal, ...goals]);
+      setGoals(prevGoals => [newGoal, ...prevGoals]);
       toast({ title: "Goal Added!", description: `"${newGoal.title}" is now tracked.` });
     }
     setIsGoalFormOpen(false);
@@ -262,41 +310,45 @@ export default function MyProgressPage() {
                 <p><CheckCircle className="inline h-3 w-3 mr-1 text-green-500"/>Completed: {certificationsCompletedCount}</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-              {certifications.map(cert => (
-                <Card key={cert.id} className={cn("transition-all", cert.status === 'Completed' ? 'bg-green-500/10 border-green-500/50' : 'bg-card')}>
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-base font-semibold">{cert.title}</CardTitle>
-                      <Badge variant={cert.status === 'Completed' ? 'default' : 'secondary'}
-                        className={cn(cert.status === 'Completed' ? 'bg-green-600 text-white' : cert.status === 'In Progress' ? 'bg-yellow-500/80 text-white' : '')}
-                      >{cert.status}</Badge>
-                    </div>
-                    <Badge variant="outline" className="text-xs w-fit">{cert.domain}</Badge>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-xs">
-                    <Progress value={cert.progress} className="h-2" />
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>{cert.dateStarted ? `Started: ${format(cert.dateStarted, "dd MMM yy")}` : 'Not Started'}</span>
-                      {cert.deadline && <span>Deadline: {format(cert.deadline, "dd MMM yy")}</span>}
-                    </div>
-                    {cert.status === 'Completed' && cert.badgeEarned && (
-                      <Badge variant="default" className="mt-1 bg-primary/80 text-primary-foreground"><Award className="h-3 w-3 mr-1"/>{cert.badgeEarned}</Badge>
-                    )}
-                  </CardContent>
-                  <CardFooter className="pt-2">
-                    <div className="flex items-center space-x-2">
-                      <Switch 
-                        id={`cert-${cert.id}`} 
-                        checked={cert.status === 'Completed'} 
-                        onCheckedChange={(checked) => handleMarkCertificationComplete(cert.id, checked)}
-                      />
-                      <Label htmlFor={`cert-${cert.id}`} className="text-xs">Mark as Completed</Label>
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
+            {certifications.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                {certifications.map(cert => (
+                  <Card key={cert.id} className={cn("transition-all", cert.status === 'Completed' ? 'bg-green-500/10 border-green-500/50' : 'bg-card')}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-base font-semibold">{cert.title}</CardTitle>
+                        <Badge variant={cert.status === 'Completed' ? 'default' : 'secondary'}
+                          className={cn(cert.status === 'Completed' ? 'bg-green-600 text-white' : cert.status === 'In Progress' ? 'bg-yellow-500/80 text-white' : '')}
+                        >{cert.status}</Badge>
+                      </div>
+                      <Badge variant="outline" className="text-xs w-fit">{cert.domain}</Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-xs">
+                      <Progress value={cert.progress} className="h-2" />
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>{cert.dateStarted ? `Started: ${format(cert.dateStarted, "dd MMM yy")}` : 'Not Started'}</span>
+                        {cert.deadline && <span>Deadline: {format(cert.deadline, "dd MMM yy")}</span>}
+                      </div>
+                      {cert.status === 'Completed' && cert.badgeEarned && (
+                        <Badge variant="default" className="mt-1 bg-primary/80 text-primary-foreground"><Award className="h-3 w-3 mr-1"/>{cert.badgeEarned}</Badge>
+                      )}
+                    </CardContent>
+                    <CardFooter className="pt-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          id={`cert-${cert.id}`} 
+                          checked={cert.status === 'Completed'} 
+                          onCheckedChange={(checked) => handleMarkCertificationComplete(cert.id, checked)}
+                        />
+                        <Label htmlFor={`cert-${cert.id}`} className="text-xs">Mark as Completed</Label>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-center py-4">No certifications being tracked yet.</p>
+            )}
           </CardContent>
         </Card>
       </section>
@@ -311,7 +363,7 @@ export default function MyProgressPage() {
             <Card className="text-center py-8"><CardContent><p className="text-muted-foreground">No goals set yet. Start planning your achievements!</p></CardContent></Card>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {goals.map(goal => (
+                {pendingGoals.map(goal => (
                     <Card key={goal.id} className={cn("flex flex-col", goal.status === 'done' ? "bg-muted/60" : "")}>
                         <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
@@ -343,6 +395,42 @@ export default function MyProgressPage() {
                         </CardFooter>
                     </Card>
                 ))}
+                 {completedGoals.length > 0 && (
+                    <div className="md:col-span-2 lg:col-span-3 mt-6 pt-6 border-t">
+                        <h3 className="text-xl font-semibold mb-3 text-muted-foreground">Completed Goals ({completedGoals.length})</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {completedGoals.map(goal => (
+                             <Card key={goal.id} className={cn("flex flex-col bg-muted/60")}>
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-start justify-between">
+                                        <CardTitle className={cn("text-md font-semibold leading-tight line-through text-muted-foreground")}>{goal.title}</CardTitle>
+                                        <Checkbox 
+                                            checked={goal.status === 'done'} 
+                                            onCheckedChange={() => toggleGoalStatus(goal.id)}
+                                            className="ml-2 mt-1 shrink-0"
+                                            aria-label={`Mark goal ${goal.title} as ${goal.status === 'done' ? 'pending' : 'done'}`}
+                                        />
+                                    </div>
+                                    {goal.deadline && (
+                                        <Badge variant={'outline'} className="text-xs w-fit mt-1">
+                                            <CalendarIcon className="h-3 w-3 mr-1.5"/> Due: {format(goal.deadline, "dd MMM yy")}
+                                        </Badge>
+                                    )}
+                                </CardHeader>
+                                <CardContent className="text-sm text-foreground/80 flex-grow">
+                                    <p className={cn("line-through text-muted-foreground")}>
+                                        {goal.description || "No description provided."}
+                                    </p>
+                                </CardContent>
+                                <CardFooter className="border-t pt-3 flex justify-end gap-2">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditGoalForm(goal)}><Edit3 className="h-4 w-4 text-blue-600" /></Button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteGoal(goal.id)}><Trash2 className="h-4 w-4 text-red-600" /></Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                        </div>
+                    </div>
+                 )}
             </div>
         )}
       </section>
@@ -510,5 +598,3 @@ export default function MyProgressPage() {
     </div>
   );
 }
-
-    
