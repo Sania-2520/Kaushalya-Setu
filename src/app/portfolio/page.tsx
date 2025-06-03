@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { identifySkills, SkillTaggingInput, SkillTaggingOutput } from '@/ai/flows/skill-tagging';
 import { useToast } from "@/hooks/use-toast";
+import { format } from 'date-fns';
 
 interface Project {
   id: string;
@@ -235,7 +236,7 @@ export default function PortfolioPage() {
               <CardHeader>
                 <CardTitle className="font-headline">{project.title}</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Uploaded on {project.uploadedAt.toLocaleDateString()}
+                  Uploaded on {format(project.uploadedAt, 'dd MMM yyyy')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
@@ -355,3 +356,5 @@ export default function PortfolioPage() {
     </div>
   );
 }
+
+      
