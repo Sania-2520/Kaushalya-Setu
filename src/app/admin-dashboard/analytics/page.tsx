@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3, ArrowLeft, Users, Activity, Award, Briefcase, TrendingUp, TrendingDown, Filter, Download, Calendar, Users2, BarChart2, PieChart, Star, FileSpreadsheet } from "lucide-react";
+import { BarChart3, ArrowLeft, Users, Activity, Award, Briefcase, TrendingUp, TrendingDown, Filter, Download, Calendar, Users2, BarChart2, PieChart as ShadCNPieIcon, Star, FileSpreadsheet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +17,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from "recharts";
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, PieChart as RechartsPieChart, Pie } from "recharts";
 
 
 const kpiData = [
@@ -58,10 +58,45 @@ const pageUsageData = [
   { page: 'Resume Tool', views: 290, fill: "hsl(var(--chart-3))" },
 ];
 
+const skillDomainsCertificationsData = [
+  { name: "Web Dev", certifications: 180, fill: "hsl(var(--chart-1))" },
+  { name: "Data Sci", certifications: 150, fill: "hsl(var(--chart-2))" },
+  { name: "Cloud", certifications: 120, fill: "hsl(var(--chart-3))" },
+  { name: "CyberSec", certifications: 90, fill: "hsl(var(--chart-4))" },
+  { name: "AI/ML", certifications: 75, fill: "hsl(var(--chart-5))" },
+];
+
+const studentsPerSkillTrackData = [
+  { name: "Full Stack Dev", value: 250, fill: "hsl(var(--chart-1))" },
+  { name: "Data Analytics", value: 180, fill: "hsl(var(--chart-2))" },
+  { name: "AWS Cloud", value: 150, fill: "hsl(var(--chart-3))" },
+  { name: "Cybersecurity Analyst", value: 100, fill: "hsl(var(--chart-4))" },
+  { name: "Machine Learning", value: 70, fill: "hsl(var(--chart-5))" },
+];
+
+const certificationCompletionFunnelData = [
+  { stage: 'Registered', count: 300, fill: "hsl(var(--chart-1))" },
+  { stage: 'In Progress', count: 220, fill: "hsl(var(--chart-2))" },
+  { stage: 'Completed', count: 150, fill: "hsl(var(--chart-3))" },
+  { stage: 'Verified', count: 120, fill: "hsl(var(--chart-4))" },
+];
+
+const topCoursesByCompletionData = [
+    { name: "CS101 Programming", completions: 95, fill: "hsl(var(--chart-1))"},
+    { name: "WD201 Web Design", completions: 80, fill: "hsl(var(--chart-2))"},
+    { name: "DS305 Data Viz", completions: 70, fill: "hsl(var(--chart-3))"},
+    { name: "CP401 Cloud Intro", completions: 60, fill: "hsl(var(--chart-4))"},
+    { name: "SEC500 Network Security", completions: 50, fill: "hsl(var(--chart-5))"},
+];
+
 const chartConfig = {
   logins: { label: "Logins", color: "hsl(var(--chart-1))" },
   users: { label: "Active Users", color: "hsl(var(--chart-2))" },
   views: { label: "Page Views", color: "hsl(var(--chart-3))" },
+  certifications: { label: "Certifications", color: "hsl(var(--chart-1))" },
+  students: { label: "Students", color: "hsl(var(--chart-2))" },
+  count: { label: "Count", color: "hsl(var(--chart-1))" },
+  completions: { label: "Completions", color: "hsl(var(--chart-1))" },
 } satisfies ChartConfig;
 
 
@@ -106,7 +141,7 @@ export default function InstitutionalAnalyticsAdminPage() {
       {/* Section 1: Engagement & Usage Trends */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Activity className="mr-2 h-5 w-5 text-primary"/>Engagement & Usage Trends</CardTitle>
+          <CardTitle className="font-headline flex items-center"><Activity className="mr-2 h-5 w-5 text-primary"/>Engagement &amp; Usage Trends</CardTitle>
           <CardDescription>Track student activity and platform interaction patterns.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -204,21 +239,71 @@ export default function InstitutionalAnalyticsAdminPage() {
       {/* Section 2: Skill Development & Certifications */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Award className="mr-2 h-5 w-5 text-primary"/>Skill Development & Certifications</CardTitle>
+          <CardTitle className="font-headline flex items-center"><Award className="mr-2 h-5 w-5 text-primary"/>Skill Development &amp; Certifications</CardTitle>
           <CardDescription>Analyze skill acquisition and certification achievements.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-72 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-            Placeholder: Skill Domains with Most Certifications (Bar Chart)
+          <div className="h-72 bg-card p-4 rounded-lg border">
+            <h4 className="text-sm font-semibold mb-2 text-center">Certifications by Skill Domain</h4>
+            <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                <RechartsBarChart data={skillDomainsCertificationsData} margin={{ top: 5, right: 5, left: -20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                    <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} angle={-25} textAnchor="end" interval={0} height={40}/>
+                    <YAxis fontSize={12} tickLine={false} axisLine={false}/>
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                    <Bar dataKey="certifications" radius={4}>
+                        {skillDomainsCertificationsData.map((entry) => (
+                            <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                        ))}
+                    </Bar>
+                </RechartsBarChart>
+            </ChartContainer>
           </div>
-          <div className="h-72 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-            Placeholder: Students per Skill Track (Tree Map/Donut Chart)
+          <div className="h-72 bg-card p-4 rounded-lg border flex flex-col items-center">
+            <h4 className="text-sm font-semibold mb-2 text-center">Students per Skill Track</h4>
+            <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                <RechartsPieChart>
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <Pie data={studentsPerSkillTrackData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} stroke="hsl(var(--border))" strokeWidth={1}>
+                         {studentsPerSkillTrackData.map((entry) => (
+                            <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                        ))}
+                    </Pie>
+                    <Legend wrapperStyle={{fontSize: "10px"}}/>
+                </RechartsPieChart>
+            </ChartContainer>
           </div>
-          <div className="md:col-span-2 h-72 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-            Placeholder: Certification Completion Funnel (Registered → In Progress → Completed → Verified)
+          <div className="h-72 bg-card p-4 rounded-lg border md:col-span-2">
+             <h4 className="text-sm font-semibold mb-2 text-center">Certification Completion Funnel</h4>
+            <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                <RechartsBarChart data={certificationCompletionFunnelData} layout="vertical" margin={{ top: 5, right: 20, left: 25, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
+                    <XAxis type="number" fontSize={12} tickLine={false} axisLine={false}/>
+                    <YAxis dataKey="stage" type="category" fontSize={12} tickLine={false} axisLine={false} width={80}/>
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                    <Bar dataKey="count" radius={4}>
+                        {certificationCompletionFunnelData.map((entry) => (
+                            <Cell key={`cell-${entry.stage}`} fill={entry.fill} />
+                        ))}
+                    </Bar>
+                </RechartsBarChart>
+            </ChartContainer>
           </div>
-           <div className="md:col-span-2 h-48 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-            Placeholder: Heatmaps for Course-wise Certification Density
+           <div className="h-72 bg-card p-4 rounded-lg border md:col-span-2">
+                <h4 className="text-sm font-semibold mb-2 text-center">Top Courses by Certification Completion</h4>
+                <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                    <RechartsBarChart data={topCoursesByCompletionData} margin={{ top: 5, right: 5, left: -20, bottom: 35 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                        <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} angle={-20} textAnchor="end" interval={0} height={50} />
+                        <YAxis fontSize={12} tickLine={false} axisLine={false}/>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                        <Bar dataKey="completions" radius={4}>
+                            {topCoursesByCompletionData.map((entry) => (
+                                <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                            ))}
+                        </Bar>
+                    </RechartsBarChart>
+                </ChartContainer>
           </div>
         </CardContent>
       </Card>
@@ -232,10 +317,10 @@ export default function InstitutionalAnalyticsAdminPage() {
         <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="h-48 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-                    Placeholder: Total Webinars Hosted & Attendance Rates Chart
+                    Placeholder: Total Webinars Hosted &amp; Attendance Rates Chart
                 </div>
                 <div className="h-48 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-                    Placeholder: Ratings & Feedback Distribution Chart
+                    Placeholder: Ratings &amp; Feedback Distribution Chart
                 </div>
                  <div className="h-48 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
                     Placeholder: Webinar Attendance vs Portfolio Improvement (Correlation)
@@ -248,7 +333,7 @@ export default function InstitutionalAnalyticsAdminPage() {
       {/* Section 4: Placement Success & Portfolio Strength */}
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Placement Success & Portfolio Strength</CardTitle>
+          <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Placement Success &amp; Portfolio Strength</CardTitle>
           <CardDescription>Evaluate student readiness for the job market.</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -310,7 +395,7 @@ export default function InstitutionalAnalyticsAdminPage() {
                     </Select>
                 </div>
                  <Button className="self-end">
-                    <Download className="mr-2 h-4 w-4" /> Generate & Download Report (CSV/PDF)
+                    <Download className="mr-2 h-4 w-4" /> Generate &amp; Download Report (CSV/PDF)
                 </Button>
             </div>
             <div className="overflow-x-auto">
