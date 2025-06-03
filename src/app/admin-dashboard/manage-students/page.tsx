@@ -90,8 +90,36 @@ export default function ManageStudentsAdminPage() {
   };
 
   const handleDownloadCSV = () => {
-    toast({ title: "Download Initiated", description: "Student data CSV generation has started." });
-    // In a real app, you'd generate and download a CSV file here
+    if (filteredStudents.length === 0) {
+      toast({ title: "No Data", description: "There is no student data to download for the current filter.", variant: "default" });
+      return;
+    }
+
+    const headers = ["Full Name", "Email", "Course/Stream", "Registration Date", "Status"];
+    const csvRows = [
+      headers.join(','),
+      ...filteredStudents.map(student => [
+        `"${student.fullName.replace(/"/g, '""')}"`, // Escape double quotes
+        `"${student.email.replace(/"/g, '""')}"`,
+        `"${student.courseStream.replace(/"/g, '""')}"`,
+        format(student.registrationDate, 'yyyy-MM-dd'),
+        student.status,
+      ].join(','))
+    ];
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    const dateSuffix = format(new Date(), 'yyyy-MM-dd');
+    link.setAttribute("download", `student_data_${dateSuffix}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Download Started", description: "Student data CSV is being downloaded." });
   };
 
   const getStatusBadgeVariant = (status: Student['status']): "default" | "secondary" | "destructive" | "outline" => {
