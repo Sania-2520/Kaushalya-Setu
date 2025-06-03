@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CalendarCheck2, PlusCircle, Edit, Trash2, Video, Users, Clock, CalendarIcon, Info, Star } from "lucide-react";
+import { CalendarCheck2, PlusCircle, Edit, Trash2, Video, Users, Clock, CalendarIcon, Info, Star, Presentation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -43,7 +43,7 @@ const initialWebinars: WebinarSession[] = [
   { id: 'web3', title: 'Cybersecurity for Beginners', dateTime: new Date(Date.now() - 2 * 60 * 60 * 1000), mode: 'Live', skillsCovered: ['Cybersecurity', 'Networking'], topic: "Security Basics", speakerName: 'Securitas Prime', speakerQualifications: 'CISSP, Ethical Hacker', sessionObjectives: 'Basic concepts of cybersecurity threats and prevention.', status: 'Live' },
 ];
 
-const sessionModes = ['Live', 'Recorded', 'Hybrid'] as const;
+const sessionModes = ['Live', 'Recorded', 'Hybrid'] as const; // Renaming this might be good for consistency, but not critical if not user-facing
 
 export default function ScheduleWebinarPage() {
   const [webinars, setWebinars] = useState<WebinarSession[]>(initialWebinars);
@@ -172,31 +172,29 @@ export default function ScheduleWebinarPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
         <h1 className="text-3xl font-bold font-headline flex items-center">
-          <CalendarCheck2 className="mr-3 h-8 w-8 text-primary" /> Schedule & Manage Sessions
+          <CalendarCheck2 className="mr-3 h-8 w-8 text-primary" /> Schedule & Manage Webinars
         </h1>
         <Button onClick={openNewWebinarForm}>
-          <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Session
+          <PlusCircle className="mr-2 h-4 w-4" /> Schedule New Webinar
         </Button>
       </div>
 
-      {/* Tabs for Upcoming, Past, Live */}
       <Card>
         <CardHeader>
-            <CardTitle>Session Listings</CardTitle>
-            <CardDescription>Manage your upcoming, past, and live webinars or mentorship sessions.</CardDescription>
+            <CardTitle className="flex items-center"><Presentation className="mr-2 h-5 w-5 text-primary" /> Webinar Listings</CardTitle>
+            <CardDescription>Manage your upcoming, past, and live webinars or mentorship programs.</CardDescription>
         </CardHeader>
         <CardContent>
-            {/* Placeholder for tabs and tables/cards of sessions */}
-            <p className="text-muted-foreground">Upcoming sessions ({upcomingWebinars.length}), Past sessions ({pastWebinars.length}), Live ({liveWebinars.length}) will be listed here with more details and filtering soon.</p>
+            <p className="text-muted-foreground">Upcoming webinars ({upcomingWebinars.length}), Past webinars ({pastWebinars.length}), Live ({liveWebinars.length}) will be listed here with more details and filtering soon.</p>
             <div className="mt-4">
-                <h3 className="font-semibold mb-2">Example Upcoming Session:</h3>
+                <h3 className="font-semibold mb-2">Example Upcoming Webinar:</h3>
                 {upcomingWebinars.length > 0 ? (
                     <div className="border p-3 rounded-md bg-muted/30">
                         <p className="font-bold">{upcomingWebinars[0].title}</p>
                         <p className="text-sm">Date: {format(upcomingWebinars[0].dateTime, "PPPp")}</p>
                         <p className="text-sm">Speaker: {upcomingWebinars[0].speakerName}</p>
                     </div>
-                ) : <p className="text-sm text-muted-foreground">No upcoming sessions.</p>}
+                ) : <p className="text-sm text-muted-foreground">No upcoming webinars.</p>}
             </div>
         </CardContent>
       </Card>
@@ -205,9 +203,9 @@ export default function ScheduleWebinarPage() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[625px]">
           <DialogHeader>
-            <DialogTitle className="font-headline">{editingWebinarId ? 'Edit Session' : 'Schedule New Session'}</DialogTitle>
+            <DialogTitle className="font-headline">{editingWebinarId ? 'Edit Webinar' : 'Schedule New Webinar'}</DialogTitle>
             <DialogDescription>
-              Provide details for the webinar or mentorship session.
+              Provide details for the webinar or mentorship program.
             </DialogDescription>
           </DialogHeader>
            <ScrollArea className="max-h-[70vh] p-1 pr-3">
@@ -297,7 +295,7 @@ export default function ScheduleWebinarPage() {
           </ScrollArea>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-            <Button onClick={handleSubmitWebinar}>{editingWebinarId ? 'Save Changes' : 'Schedule Session'}</Button>
+            <Button onClick={handleSubmitWebinar}>{editingWebinarId ? 'Save Changes' : 'Schedule Webinar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -308,7 +306,7 @@ export default function ScheduleWebinarPage() {
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the session "{webinarToDelete?.title}"? This action cannot be undone.
+              Are you sure you want to delete the webinar "{webinarToDelete?.title}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -322,7 +320,7 @@ export default function ScheduleWebinarPage() {
             <CardTitle className="flex items-center"><Star className="mr-2 h-5 w-5 text-yellow-400"/> Student Feedback & Ratings</CardTitle>
         </CardHeader>
         <CardContent>
-            <p className="text-muted-foreground">Functionality to view student feedback and ratings for past sessions will be available here. This helps in improving future sessions.</p>
+            <p className="text-muted-foreground">Functionality to view student feedback and ratings for past webinars will be available here. This helps in improving future programs.</p>
             {/* Placeholder for feedback display */}
         </CardContent>
        </Card>

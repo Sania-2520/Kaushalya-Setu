@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, Clock, MessageSquare, Send, Star, User, Video } from "lucide-react";
+import { CalendarDays, Clock, MessageSquare, Send, Star, User, Video, Presentation } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -110,7 +110,7 @@ const generateInitialQnA = (): QnAItem[] => [
 ];
 
 
-export default function LiveSessionsPage() {
+export default function WebinarsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [qnaItems, setQnaItems] = useState<QnAItem[]>([]);
@@ -168,7 +168,9 @@ export default function LiveSessionsPage() {
   return (
     <div className="flex flex-col lg:flex-row gap-8">
       <aside className="lg:w-1/3 space-y-6">
-        <h2 className="text-2xl font-semibold font-headline">Sessions</h2>
+        <h2 className="text-2xl font-semibold font-headline flex items-center">
+          <Presentation className="mr-2 h-6 w-6 text-primary" /> Webinars
+        </h2>
         <Tabs defaultValue="upcoming">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
@@ -179,17 +181,17 @@ export default function LiveSessionsPage() {
             <TabsContent value="upcoming" className="space-y-4">
               {upcomingSessions.length > 0 ? upcomingSessions.map(session => (
                 <SessionListItem key={session.id} session={session} onSelect={setSelectedSession} isSelected={selectedSession?.id === session.id} />
-              )) : <p className="text-muted-foreground p-4 text-center">No upcoming sessions.</p>}
+              )) : <p className="text-muted-foreground p-4 text-center">No upcoming webinars.</p>}
             </TabsContent>
             <TabsContent value="live" className="space-y-4">
               {liveSessions.length > 0 ? liveSessions.map(session => (
                 <SessionListItem key={session.id} session={session} onSelect={setSelectedSession} isSelected={selectedSession?.id === session.id} />
-              )) : <p className="text-muted-foreground p-4 text-center">No sessions currently live.</p>}
+              )) : <p className="text-muted-foreground p-4 text-center">No webinars currently live.</p>}
             </TabsContent>
             <TabsContent value="past" className="space-y-4">
               {pastSessions.length > 0 ? pastSessions.map(session => (
                 <SessionListItem key={session.id} session={session} onSelect={setSelectedSession} isSelected={selectedSession?.id === session.id} />
-              )) : <p className="text-muted-foreground p-4 text-center">No past sessions found.</p>}
+              )) : <p className="text-muted-foreground p-4 text-center">No past webinars found.</p>}
             </TabsContent>
           </ScrollArea>
         </Tabs>
@@ -231,14 +233,14 @@ export default function LiveSessionsPage() {
               {selectedSession.isLive && selectedSession.platformLink && (
                 <Button asChild className="mt-6 w-full sm:w-auto">
                   <a href={selectedSession.platformLink} target="_blank" rel="noopener noreferrer">
-                    <Video className="mr-2 h-4 w-4" /> Join Live Session
+                    <Video className="mr-2 h-4 w-4" /> Join Live Webinar
                   </a>
                 </Button>
               )}
             </CardContent>
             <CardFooter className="border-t pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <p className="text-sm font-semibold">Rate this session:</p>
+                <p className="text-sm font-semibold">Rate this webinar:</p>
                 <div className="flex items-center space-x-1 mt-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <Star
@@ -308,9 +310,9 @@ export default function LiveSessionsPage() {
           </Card>
         ) : (
           <div className="flex flex-col items-center justify-center h-full min-h-[400px] bg-card rounded-lg p-8 text-center">
-            <Video className="h-24 w-24 text-muted-foreground mb-6" />
-            <h2 className="text-2xl font-semibold font-headline mb-2">Select a session</h2>
-            <p className="text-muted-foreground font-body">Choose a session from the list to see its details and participate in Q&A.</p>
+            <Presentation className="h-24 w-24 text-muted-foreground mb-6" />
+            <h2 className="text-2xl font-semibold font-headline mb-2">Select a webinar</h2>
+            <p className="text-muted-foreground font-body">Choose a webinar from the list to see its details and participate in Q&A.</p>
           </div>
         )}
       </main>
@@ -350,6 +352,3 @@ function SessionListItem({ session, onSelect, isSelected }: SessionListItemProps
     </Card>
   )
 }
-
-
-    

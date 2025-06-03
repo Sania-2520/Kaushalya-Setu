@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Target, Sparkles, GraduationCap, BarChart3, LayoutDashboard, Building, Edit, FileText, PieChart, CalendarCheck2, Search, FileSignature, ScanSearch } from 'lucide-react';
+import { Menu, Briefcase, BookOpen, Users, MessageSquare, LogIn, User, Settings, LogOut as LogOutIcon, Route, BookOpenText, Target, Sparkles, GraduationCap, BarChart3, LayoutDashboard, Building, Edit, FileText, PieChart, CalendarCheck2, Search, FileSignature, ScanSearch, Presentation } from 'lucide-react';
 import Logo from '@/components/shared/logo';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ const studentNavLinks = [
   { href: '/resume-builder', label: 'Resume Builder', icon: <FileSignature className="h-5 w-5" /> },
   { href: '/resume-reviewer', label: 'Resume Analyzer', icon: <ScanSearch className="h-5 w-5" /> },
   { href: '/jobs', label: 'Jobs', icon: <Users className="h-5 w-5" /> },
-  { href: '/live-sessions', label: 'Live Sessions', icon: <MessageSquare className="h-5 w-5" /> },
+  { href: '/live-sessions', label: 'Webinars', icon: <Presentation className="h-5 w-5" /> },
   { href: '/course-progress', label: 'My Progress', icon: <Route className="h-5 w-5" /> },
   { href: '/knowledge-base', label: 'Knowledge Base', icon: <BookOpenText className="h-5 w-5" /> },
 ];

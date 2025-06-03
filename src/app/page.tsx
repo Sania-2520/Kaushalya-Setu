@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route, TrendingUp, Star, BookOpenText, Sparkles as SparklesIcon, Target, GraduationCap } from 'lucide-react';
+import { Briefcase, Award, Users, MessageSquare, Zap, Lightbulb, Route, TrendingUp, Star, BookOpenText, Sparkles as SparklesIcon, Target, GraduationCap, Presentation } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
@@ -55,8 +55,8 @@ const features = [
     link: '/smart-recommendations',
   },
   {
-    icon: <MessageSquare className="h-10 w-10 text-primary" />,
-    title: 'Live Webinars & Mentorship',
+    icon: <Presentation className="h-10 w-10 text-primary" />,
+    title: 'Webinars & Mentorship',
     description: 'Connect with industry experts, participate in Q&A forums, and get valuable mentorship.',
     link: '/live-sessions',
   },

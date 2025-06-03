@@ -22,7 +22,7 @@ export default function IndustryDashboardPage() {
 
   const dashboardLinks = [
     { title: "Post Job/Internship", description: "Create and manage job or internship listings for students.", href: "/industry-dashboard/post-job", icon: <Edit className="h-8 w-8 text-primary" /> },
-    { title: "Schedule Webinars", description: "Organize live sessions, workshops, or mentorship programs.", href: "/industry-dashboard/schedule-webinar", icon: <CalendarCheck2 className="h-8 w-8 text-primary" /> },
+    { title: "Schedule Webinars", description: "Organize webinars, workshops, or mentorship programs.", href: "/industry-dashboard/schedule-webinar", icon: <CalendarCheck2 className="h-8 w-8 text-primary" /> },
     { title: "Review Student Portfolios", description: "Discover talented students and review their profiles.", href: "/industry-dashboard/review-portfolios", icon: <Users className="h-8 w-8 text-primary" /> },
     { title: "Track Impact & Analytics", description: "View analytics on your engagement and its impact.", href: "/industry-dashboard/track-impact", icon: <PieChart className="h-8 w-8 text-primary" /> },
   ];
