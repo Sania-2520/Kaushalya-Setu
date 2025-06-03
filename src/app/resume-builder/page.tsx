@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FileSignature, User, GraduationCap, Briefcase, FolderKanban, ListChecks, Languages, Award, PlusCircle, Save, Eye, Printer, Palette, Trash2, Link as LinkIcon } from "lucide-react";
+import { FileSignature, User, GraduationCap, Briefcase, FolderKanban, ListChecks, Languages, Award, PlusCircle, Save, Eye, Printer, Palette, Trash2, Link as LinkIcon, Loader2 } from "lucide-react";
 import { IT_KEYWORDS } from '@/lib/constants'; 
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +24,7 @@ interface PersonalDetails {
   address: string;
   linkedin: string;
   github: string;
-  profilePictureUrl?: string; 
+  profilePictureUrl?: string | null; 
 }
 
 interface EducationEntry {
@@ -91,7 +91,7 @@ export default function ResumeBuilderPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   // Resume State
-  const [personalDetails, setPersonalDetails] = useState<PersonalDetails>({ fullName: "", email: "", phone: "", address: "", linkedin: "", github: "" });
+  const [personalDetails, setPersonalDetails] = useState<PersonalDetails>({ fullName: "", email: "", phone: "", address: "", linkedin: "", github: "", profilePictureUrl: null });
   const [summary, setSummary] = useState("");
   const [educationEntries, setEducationEntries] = useState<EducationEntry[]>([]);
   const [experienceEntries, setExperienceEntries] = useState<ExperienceEntry[]>([]);
@@ -125,7 +125,7 @@ export default function ResumeBuilderPage() {
       const resumeSnap = await getDoc(resumeRef);
       if (resumeSnap.exists()) {
         const data = resumeSnap.data() as ResumeData;
-        setPersonalDetails(data.personalDetails || { fullName: "", email: "", phone: "", address: "", linkedin: "", github: "" });
+        setPersonalDetails(data.personalDetails || { fullName: "", email: "", phone: "", address: "", linkedin: "", github: "", profilePictureUrl: null });
         setSummary(data.summary || "");
         setEducationEntries(data.educationEntries || []);
         setExperienceEntries(data.experienceEntries || []);
@@ -134,9 +134,7 @@ export default function ResumeBuilderPage() {
         setCertificationEntries(data.certificationEntries || []);
         setLanguageEntries(data.languageEntries || []);
         setAchievementEntries(data.achievementEntries || []);
-        if (data.personalDetails?.profilePictureUrl) {
-            setProfilePicturePreview(data.personalDetails.profilePictureUrl); // Assuming URL is stored
-        }
+        setProfilePicturePreview(data.personalDetails?.profilePictureUrl || null);
         toast({ title: "Resume Loaded", description: "Your saved resume data has been loaded." });
       } else {
         toast({ title: "No Saved Resume", description: "Start building your new resume!" });
@@ -158,7 +156,7 @@ export default function ResumeBuilderPage() {
     const resumeDataToSave: ResumeData = {
       personalDetails: {
         ...personalDetails,
-        profilePictureUrl: profilePicturePreview || undefined // Store preview URL or actual storage URL if implemented
+        profilePictureUrl: profilePicturePreview || null 
       },
       summary,
       educationEntries,
@@ -175,7 +173,7 @@ export default function ResumeBuilderPage() {
       toast({ title: "Resume Saved!", description: "Your resume has been saved to the cloud." });
     } catch (error) {
       console.error("Error saving resume: ", error);
-      toast({ title: "Save Failed", description: "Could not save your resume.", variant: "destructive" });
+      toast({ title: "Save Failed", description: `Could not save your resume. ${error instanceof Error ? error.message : ""}`, variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -190,8 +188,7 @@ export default function ResumeBuilderPage() {
   const handleProfilePictureChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Basic validation (optional, can be more robust)
-      if (file.size > 2 * 1024 * 1024) { // Max 2MB
+      if (file.size > 2 * 1024 * 1024) { 
         toast({title: "Image too large", description: "Please select an image smaller than 2MB.", variant: "destructive"});
         return;
       }
@@ -201,27 +198,26 @@ export default function ResumeBuilderPage() {
         setProfilePicturePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      // Note: Actual upload to Firebase Storage would happen here or on save
       toast({title: "Image Selected", description: "Image preview updated. Cloud storage for images coming soon."});
     }
   };
 
-  // Generic handlers for array sections
-  const addEntry = <T extends { id: string }>(setter: React.Dispatch<React.SetStateAction<T[]>>, newEntry: Omit<T, 'id'>) => {
-    setter(prev => [...prev, { ...newEntry, id: Date.now().toString() } as T]);
+  const addEntry = <T extends { id: string }>(setter: React.Dispatch<React.SetStateAction<T[]>>, newEntryData: Omit<T, 'id'>) => {
+    const entryWithId = { ...newEntryData, id: Date.now().toString() } as T;
+    setter(prev => [...prev, entryWithId]);
   };
 
   const removeEntry = <T extends { id: string }>(setter: React.Dispatch<React.SetStateAction<T[]>>, id: string) => {
     setter(prev => prev.filter(entry => entry.id !== id));
   };
 
-  const updateEntry = <T extends { id: string }>(setter: React.Dispatch<React.SetStateAction<T[]>>, id: string, field: keyof T, value: any) => {
+  const updateEntry = <T extends { id: string }>(setter: React.Dispatch<React.SetStateAction<T[]>>, id: string, field: keyof Omit<T, 'id'>, value: any) => {
     setter(prev => prev.map(entry => entry.id === id ? { ...entry, [field]: value } : entry));
   };
-
+  
   const handleAddSkill = () => {
-    if (currentSkill && !skills.includes(currentSkill)) {
-      setSkills([...skills, currentSkill]);
+    if (currentSkill.trim() && !skills.includes(currentSkill.trim())) {
+      setSkills([...skills, currentSkill.trim()]);
       setCurrentSkill("");
     }
   };
@@ -235,11 +231,12 @@ export default function ResumeBuilderPage() {
       title: "Exporting Resume", 
       description: "Your browser's print dialog will open. Please select 'Save as PDF' as the destination." 
     });
-    window.print(); // This will try to print the whole page, including UI. Needs specific print CSS or a dedicated PDF generation library for a clean resume.
+    setTimeout(() => window.print(), 100); 
   };
 
-  if (isLoading && !userId) { // Show loading only if userId is not yet set (initial auth check)
-    return <div className="flex justify-center items-center h-screen"><p>Loading user data...</p></div>;
+
+  if (isLoading && !userId) { 
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="h-8 w-8 animate-spin text-primary" /> <p className="ml-2">Loading user data...</p></div>;
   }
 
 
@@ -260,10 +257,8 @@ export default function ResumeBuilderPage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Form Sections */}
         <div className="lg:col-span-3 space-y-6 print:hidden">
           <Accordion type="multiple" defaultValue={['personal-details']} className="w-full">
-            {/* Personal Details */}
             <AccordionItem value="personal-details">
               <AccordionTrigger className="font-semibold text-lg"><User className="mr-2 h-5 w-5 text-primary" />Personal Details</AccordionTrigger>
               <AccordionContent className="space-y-4 p-4 border rounded-md bg-card">
@@ -283,13 +278,12 @@ export default function ResumeBuilderPage() {
                   <Label htmlFor="profilePicture">Profile Picture (Optional)</Label>
                   <Input id="profilePicture" type="file" accept="image/*" onChange={handleProfilePictureChange} />
                   {profilePicturePreview && <Image src={profilePicturePreview} alt="Profile Preview" width={96} height={96} className="mt-2 h-24 w-24 rounded-md object-cover border" data-ai-hint="person avatar"/>}
-                  <p className="text-xs text-muted-foreground mt-1">Image preview is local. Full cloud storage for images coming soon.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Image preview is local. Cloud storage for images coming soon.</p>
                 </div>
                  <div><Label htmlFor="summary">Professional Summary / Objective</Label><Textarea id="summary" value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="A brief overview of your skills and career goals..." /></div>
               </AccordionContent>
             </AccordionItem>
 
-            {/* Education */}
             <AccordionItem value="education">
               <AccordionTrigger className="font-semibold text-lg"><GraduationCap className="mr-2 h-5 w-5 text-primary" />Education</AccordionTrigger>
               <AccordionContent className="space-y-4 p-4 border rounded-md bg-card">
@@ -312,7 +306,6 @@ export default function ResumeBuilderPage() {
               </AccordionContent>
             </AccordionItem>
 
-            {/* Experience */}
             <AccordionItem value="experience">
                 <AccordionTrigger className="font-semibold text-lg"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Internships/Experience</AccordionTrigger>
                 <AccordionContent className="space-y-4 p-4 border rounded-md bg-card">
@@ -332,7 +325,6 @@ export default function ResumeBuilderPage() {
                 </AccordionContent>
             </AccordionItem>
 
-             {/* Projects */}
              <AccordionItem value="projects">
                 <AccordionTrigger className="font-semibold text-lg"><FolderKanban className="mr-2 h-5 w-5 text-primary"/>Projects</AccordionTrigger>
                 <AccordionContent className="space-y-4 p-4 border rounded-md bg-card">
@@ -353,7 +345,6 @@ export default function ResumeBuilderPage() {
                 </AccordionContent>
             </AccordionItem>
 
-            {/* Skills */}
              <AccordionItem value="skills">
                 <AccordionTrigger className="font-semibold text-lg"><ListChecks className="mr-2 h-5 w-5 text-primary"/>Skills</AccordionTrigger>
                 <AccordionContent className="space-y-4 p-4 border rounded-md bg-card">
@@ -374,7 +365,6 @@ export default function ResumeBuilderPage() {
                 </AccordionContent>
             </AccordionItem>
             
-            {/* Certifications */}
             <AccordionItem value="certifications">
                 <AccordionTrigger className="font-semibold text-lg"><Award className="mr-2 h-5 w-5 text-primary"/>Certifications</AccordionTrigger>
                 <AccordionContent className="space-y-4 p-4 border rounded-md bg-card">
@@ -393,7 +383,6 @@ export default function ResumeBuilderPage() {
                 </AccordionContent>
             </AccordionItem>
 
-            {/* Languages */}
             <AccordionItem value="languages">
                 <AccordionTrigger className="font-semibold text-lg"><Languages className="mr-2 h-5 w-5 text-primary"/>Languages</AccordionTrigger>
                 <AccordionContent className="space-y-4 p-4 border rounded-md bg-card">
@@ -422,7 +411,6 @@ export default function ResumeBuilderPage() {
                 </AccordionContent>
             </AccordionItem>
 
-            {/* Achievements */}
             <AccordionItem value="achievements">
                 <AccordionTrigger className="font-semibold text-lg"><Award className="mr-2 h-5 w-5 text-primary"/>Awards & Achievements</AccordionTrigger>
                 <AccordionContent className="space-y-4 p-4 border rounded-md bg-card">
@@ -455,7 +443,6 @@ export default function ResumeBuilderPage() {
           </div>
         </div>
 
-        {/* Live Preview Panel */}
         <aside className="lg:col-span-2 space-y-6 print:col-span-5 print:space-y-2">
           <Card className="print:shadow-none print:border-none">
             <CardHeader className="print:hidden">
@@ -463,7 +450,6 @@ export default function ResumeBuilderPage() {
                <CardDescription>This is a basic preview. Use "Export as PDF" for a better view.</CardDescription>
             </CardHeader>
             <CardContent className="min-h-[calc(100vh-200px)] overflow-y-auto bg-muted/10 p-6 border rounded-md print:p-2 print:border-none print:bg-white print:text-black">
-              {/* Personal Details Preview */}
               <div className="text-center mb-6 print:mb-3">
                 {profilePicturePreview && (
                   <Image src={profilePicturePreview} alt="Profile" width={100} height={100} className="rounded-full mx-auto mb-2 h-24 w-24 object-cover print:h-20 print:w-20" data-ai-hint="person avatar"/>
@@ -479,7 +465,6 @@ export default function ResumeBuilderPage() {
                 </div>
               </div>
 
-              {/* Summary Preview */}
               {summary && (
                 <section className="mb-4 print:mb-2">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2 print:text-base print:pb-0.5 print:mb-1">Summary</h3>
@@ -487,7 +472,6 @@ export default function ResumeBuilderPage() {
                 </section>
               )}
 
-              {/* Education Preview */}
               {educationEntries.length > 0 && (
                 <section className="mb-4 print:mb-2">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2 print:text-base print:pb-0.5 print:mb-1">Education</h3>
@@ -500,7 +484,6 @@ export default function ResumeBuilderPage() {
                 </section>
               )}
 
-              {/* Experience Preview */}
               {experienceEntries.length > 0 && (
                 <section className="mb-4 print:mb-2">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2 print:text-base print:pb-0.5 print:mb-1">Experience</h3>
@@ -516,7 +499,6 @@ export default function ResumeBuilderPage() {
                 </section>
               )}
 
-              {/* Projects Preview */}
               {projectEntries.length > 0 && (
                 <section className="mb-4 print:mb-2">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2 print:text-base print:pb-0.5 print:mb-1">Projects</h3>
@@ -535,7 +517,6 @@ export default function ResumeBuilderPage() {
                 </section>
               )}
 
-              {/* Skills Preview */}
               {skills.length > 0 && (
                 <section className="mb-4 print:mb-2">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2 print:text-base print:pb-0.5 print:mb-1">Skills</h3>
@@ -545,7 +526,6 @@ export default function ResumeBuilderPage() {
                 </section>
               )}
               
-              {/* Certifications Preview */}
               {certificationEntries.length > 0 && (
                  <section className="mb-4 print:mb-2">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2 print:text-base print:pb-0.5 print:mb-1">Certifications</h3>
@@ -557,7 +537,6 @@ export default function ResumeBuilderPage() {
                 </section>
               )}
 
-              {/* Languages Preview */}
               {languageEntries.length > 0 && (
                 <section className="mb-4 print:mb-2">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2 print:text-base print:pb-0.5 print:mb-1">Languages</h3>
@@ -567,7 +546,6 @@ export default function ResumeBuilderPage() {
                 </section>
               )}
               
-              {/* Achievements Preview */}
               {achievementEntries.length > 0 && (
                 <section className="mb-4 print:mb-2">
                   <h3 className="text-lg font-semibold border-b pb-1 mb-2 print:text-base print:pb-0.5 print:mb-1">Achievements</h3>
@@ -581,13 +559,12 @@ export default function ResumeBuilderPage() {
           </Card>
         </aside>
       </div>
-       {/* Print-specific styles: Hidden on screen, visible for print */}
-      <style jsx global>{`
+       <style jsx global>{`
         @media print {
           body { 
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact;
-            font-size: 10pt; /* Example base font size for print */
+            font-size: 10pt; 
           }
           .print\\:hidden { display: none !important; }
           .print\\:col-span-5 { grid-column: span 5 / span 5 !important; }
