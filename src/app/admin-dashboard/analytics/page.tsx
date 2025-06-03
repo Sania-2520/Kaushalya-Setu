@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart3, ArrowLeft, Users, Activity, Award, Briefcase, TrendingUp, TrendingDown, Filter, Download, Calendar, Users2, BarChart2, PieChart as ShadCNPieIcon, Star, FileSpreadsheet } from "lucide-react";
+import { BarChart3, ArrowLeft, Users, Activity, Award, Briefcase, TrendingUp, TrendingDown, Filter, Download, Calendar, Users2, BarChart2, PieChart as ShadCNPieIcon, Star, FileSpreadsheet, Video, Percent, ThumbsUp, Building } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +18,8 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell, PieChart as RechartsPieChart, Pie } from "recharts";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 
 const kpiData = [
@@ -31,6 +33,12 @@ const dummyStudentsForReport = [
     {id: '1', name: 'Aarav Sharma', email: 'aarav@example.com', course: 'Computer Science', certifications: 5, portfolioScore: 85, placementStatus: 'Placed', lastActive: '2 days ago'},
     {id: '2', name: 'Priya Patel', email: 'priya@example.com', course: 'Electronics', certifications: 3, portfolioScore: 70, placementStatus: 'Internship', lastActive: '1 day ago'},
     {id: '3', name: 'Rohan Das', email: 'rohan@example.com', course: 'Mechanical', certifications: 1, portfolioScore: 60, placementStatus: 'Seeking', lastActive: '5 days ago'},
+];
+
+const topPerformingStudentsData = [
+    {id: 'tp1', name: 'Riya Sharma', course: 'Computer Science', portfolioScore: 92, placementStatus: 'Placed at TechCorp', skills: ['React', 'Node.js'], avgRating: 4.8},
+    {id: 'tp2', name: 'Karan Verma', course: 'Data Science', portfolioScore: 88, placementStatus: 'Internship at DataSolutions', skills: ['Python', 'ML'], avgRating: 4.5},
+    {id: 'tp3', name: 'Anjali Singh', course: 'Cloud Computing', portfolioScore: 90, placementStatus: 'Placed at CloudNet', skills: ['AWS', 'DevOps'], avgRating: 4.7},
 ];
 
 const weeklyLoginsData = [
@@ -89,6 +97,45 @@ const topCoursesByCompletionData = [
     { name: "SEC500 Network Security", completions: 50, fill: "hsl(var(--chart-5))"},
 ];
 
+const webinarAttendanceData = [
+    { name: "Intro to React", attendance: 150, fill: "hsl(var(--chart-1))" },
+    { name: "Node.js Basics", attendance: 120, fill: "hsl(var(--chart-2))" },
+    { name: "Data Viz Conf", attendance: 200, fill: "hsl(var(--chart-3))" },
+    { name: "AI Ethics Talk", attendance: 90, fill: "hsl(var(--chart-4))" },
+];
+const webinarRatingsData = [
+    { name: "5 Stars", value: 60, fill: "hsl(var(--chart-1))"},
+    { name: "4 Stars", value: 25, fill: "hsl(var(--chart-2))"},
+    { name: "3 Stars", value: 10, fill: "hsl(var(--chart-3))"},
+    { name: "2 Stars", value: 3, fill: "hsl(var(--chart-4))"},
+    { name: "1 Star", value: 2, fill: "hsl(var(--chart-5))"},
+];
+const topRatedWebinarsData = [
+    {id: 'wr1', title: 'Advanced Cloud Architectures', speaker: 'Dr. Sky High', avgRating: 4.9, attendees: 180},
+    {id: 'wr2', title: 'Modern Frontend Frameworks', speaker: 'Dev Guru', avgRating: 4.8, attendees: 220},
+    {id: 'wr3', title: 'AI in Healthcare', speaker: 'Prof. MedAI', avgRating: 4.7, attendees: 150},
+];
+
+const portfolioStrengthData = [
+    { name: "Strong Portfolio", value: 70, fill: "hsl(var(--chart-1))" },
+    { name: "Needs Improvement", value: 30, fill: "hsl(var(--chart-2))" },
+];
+const resumeScoresByDeptData = [
+    { dept: "CompSci", score: 82, fill: "hsl(var(--chart-1))" },
+    { dept: "Electronics", score: 75, fill: "hsl(var(--chart-2))" },
+    { dept: "Mechanical", score: 68, fill: "hsl(var(--chart-3))" },
+    { dept: "Civil", score: 70, fill: "hsl(var(--chart-4))" },
+];
+const placementFunnelData = [
+    { stage: 'Applied', count: 250, fill: "hsl(var(--chart-1))" },
+    { stage: 'Interviewed', count: 120, fill: "hsl(var(--chart-2))" },
+    { stage: 'Offered', count: 60, fill: "hsl(var(--chart-3))" },
+    { stage: 'Placed', count: 45, fill: "hsl(var(--chart-4))" },
+];
+const companiesInteractedData = [
+    "Tech Solutions Inc.", "Innovate Hub", "Data Weavers Ltd.", "GreenTech Innovations", "CyberSafe Corp."
+];
+
 const chartConfig = {
   logins: { label: "Logins", color: "hsl(var(--chart-1))" },
   users: { label: "Active Users", color: "hsl(var(--chart-2))" },
@@ -97,11 +144,76 @@ const chartConfig = {
   students: { label: "Students", color: "hsl(var(--chart-2))" },
   count: { label: "Count", color: "hsl(var(--chart-1))" },
   completions: { label: "Completions", color: "hsl(var(--chart-1))" },
+  attendance: { label: "Attendance", color: "hsl(var(--chart-1))"},
+  value: {label: "Value"}, // For pie charts general value
+  score: { label: "Avg Score", color: "hsl(var(--chart-1))"},
 } satisfies ChartConfig;
 
 
 export default function InstitutionalAnalyticsAdminPage() {
   const router = useRouter();
+  const { toast } = useToast();
+
+  const downloadCSV = (data: any[], filename: string, headers: string[]) => {
+    if (data.length === 0) {
+      toast({ title: "No Data", description: "There is no data to download for the current selection.", variant: "default" });
+      return;
+    }
+
+    const csvRows = [
+      headers.join(','),
+      ...data.map(row => {
+        // Ensure order of values matches headers
+        return headers.map(header => {
+          // Convert header to a key (e.g., "Student Name" -> "name" or "studentName")
+          // This is a bit naive and might need adjustment based on your actual data keys
+          const key = header.toLowerCase().replace(/\s+/g, ''); 
+          let value = "";
+          if (key === 'studentname' && row.name) value = row.name;
+          else if (key === 'email' && row.email) value = row.email;
+          else if (key === 'course' && row.course) value = row.course;
+          else if (key === 'certifications' && row.certifications) value = row.certifications.toString();
+          else if (key === 'portfolioscore' && row.portfolioScore) value = row.portfolioScore.toString();
+          else if (key === 'placementstatus' && row.placementStatus) value = row.placementStatus;
+          else if (key === 'lastactive' && row.lastActive) value = row.lastActive;
+          else if (key === 'title' && row.title) value = row.title;
+          else if (key === 'speaker' && row.speaker) value = row.speaker;
+          else if (key === 'avgrating' && row.avgRating) value = row.avgRating.toString();
+          else if (key === 'attendees' && row.attendees) value = row.attendees.toString();
+          else if (key === 'skills' && row.skills) value = Array.isArray(row.skills) ? row.skills.join('; ') : row.skills;
+          // Add more specific key mappings if needed
+
+          // Escape double quotes by replacing them with two double quotes
+          return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(',');
+      })
+    ];
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    const dateSuffix = format(new Date(), 'yyyy-MM-dd');
+    link.setAttribute("download", `${filename}_${dateSuffix}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Download Started", description: `${filename} CSV is being downloaded.` });
+  };
+
+  const handleDownloadFilteredReport = () => {
+    // In a real app, data would be fetched based on filters. Here, we use dummy data.
+    const headers = ["Student Name", "Email", "Course", "Certifications", "Portfolio Score", "Placement Status", "Last Active"];
+    downloadCSV(dummyStudentsForReport, "student_report", headers);
+  };
+
+  const handleDownloadTopStudents = () => {
+    const headers = ["Student Name", "Course", "Portfolio Score", "Placement Status", "Skills", "Avg Rating"];
+    downloadCSV(topPerformingStudentsData, "top_performing_students", headers);
+  };
 
   return (
     <div className="space-y-8">
@@ -128,10 +240,6 @@ export default function InstitutionalAnalyticsAdminPage() {
               <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                 {kpi.trend}
                 <span>{kpi.change}</span>
-              </div>
-              {/* Placeholder for sparkline/hover insights */}
-              <div className="h-8 mt-2 bg-muted/50 rounded-sm flex items-center justify-center text-xs text-muted-foreground">
-                Trendline/Insight Placeholder
               </div>
             </CardContent>
           </Card>
@@ -309,51 +417,151 @@ export default function InstitutionalAnalyticsAdminPage() {
       </Card>
 
       {/* Section 3: Webinar Analytics */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Users className="mr-2 h-5 w-5 text-primary"/>Webinar Analytics</CardTitle>
-           <CardDescription>Insights into webinar engagement and effectiveness.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="h-48 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-                    Placeholder: Total Webinars Hosted &amp; Attendance Rates Chart
+        <Card>
+            <CardHeader>
+            <CardTitle className="font-headline flex items-center"><Video className="mr-2 h-5 w-5 text-primary"/>Webinar Analytics</CardTitle>
+            <CardDescription>Insights into webinar engagement and effectiveness.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card className="md:col-span-1">
+                        <CardHeader className="pb-2"><CardTitle className="text-base">Total Webinars Hosted</CardTitle></CardHeader>
+                        <CardContent><p className="text-3xl font-bold">25</p><p className="text-xs text-muted-foreground">+3 last month</p></CardContent>
+                    </Card>
+                    <div className="md:col-span-2 h-60 bg-card p-4 rounded-lg border">
+                         <h4 className="text-sm font-semibold mb-2 text-center">Top Webinars by Attendance</h4>
+                        <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                            <RechartsBarChart data={webinarAttendanceData} layout="vertical" margin={{ top: 5, right: 20, left: 50, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
+                                <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis dataKey="name" type="category" fontSize={10} tickLine={false} axisLine={false} width={120} interval={0}/>
+                                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                <Bar dataKey="attendance" radius={4}>
+                                    {webinarAttendanceData.map((entry) => (<Cell key={`cell-${entry.name}`} fill={entry.fill} /> ))}
+                                </Bar>
+                            </RechartsBarChart>
+                        </ChartContainer>
+                    </div>
                 </div>
-                <div className="h-48 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-                    Placeholder: Ratings &amp; Feedback Distribution Chart
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="h-60 bg-card p-4 rounded-lg border flex flex-col items-center">
+                        <h4 className="text-sm font-semibold mb-2 text-center">Webinar Ratings Distribution</h4>
+                        <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                            <RechartsPieChart>
+                                <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                                <Pie data={webinarRatingsData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} labelLine={false} label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`} stroke="hsl(var(--border))" strokeWidth={1}>
+                                     {webinarRatingsData.map((entry) => (<Cell key={`cell-${entry.name}`} fill={entry.fill} />))}
+                                </Pie>
+                                <Legend wrapperStyle={{fontSize: "10px"}} iconSize={10} layout="vertical" align="right" verticalAlign="middle"/>
+                            </RechartsPieChart>
+                        </ChartContainer>
+                    </div>
+                    <Card>
+                        <CardHeader><CardTitle className="text-base">Top Rated Webinars</CardTitle></CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow><TableHead>Title</TableHead><TableHead>Rating</TableHead><TableHead>Attendees</TableHead></TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {topRatedWebinarsData.map(webinar => (
+                                        <TableRow key={webinar.id}>
+                                            <TableCell className="text-xs">{webinar.title}</TableCell>
+                                            <TableCell className="text-xs flex items-center"><Star className="h-3 w-3 mr-1 text-yellow-400 fill-yellow-400"/>{webinar.avgRating}</TableCell>
+                                            <TableCell className="text-xs">{webinar.attendees}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 </div>
-                 <div className="h-48 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-                    Placeholder: Webinar Attendance vs Portfolio Improvement (Correlation)
-                </div>
-            </div>
-             <div className="text-muted-foreground italic p-4 text-center">Placeholder: Table of Top-Rated Webinars</div>
-        </CardContent>
-      </Card>
+            </CardContent>
+        </Card>
 
       {/* Section 4: Placement Success & Portfolio Strength */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Placement Success &amp; Portfolio Strength</CardTitle>
-          <CardDescription>Evaluate student readiness for the job market.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-60 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-            Placeholder: % of Final-Year Students with Strong Portfolios (Donut Chart)
-          </div>
-          <div className="h-60 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-            Placeholder: Resume Analyzer Average Scores by Department (Bar Chart)
-          </div>
-          <div className="h-60 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-            Placeholder: Placement Rate (Offers vs Applicants) Chart
-          </div>
-          <div className="h-60 bg-muted/50 rounded-lg p-4 flex items-center justify-center text-muted-foreground italic">
-            Placeholder: Companies Interacted (Logo Cloud or List)
-          </div>
-          <div className="md:col-span-2 text-muted-foreground italic p-4 text-center border-t mt-4">
-            Placeholder: "Top Performing Students" Section with Export Option <Button size="sm" variant="outline" className="ml-2"><Download className="mr-1 h-3 w-3"/>Export</Button>
-          </div>
-        </CardContent>
-      </Card>
+        <Card>
+            <CardHeader>
+            <CardTitle className="font-headline flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary"/>Placement Success &amp; Portfolio Strength</CardTitle>
+            <CardDescription>Evaluate student readiness for the job market.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="h-60 bg-card p-4 rounded-lg border flex flex-col items-center">
+                <h4 className="text-sm font-semibold mb-2 text-center">% Students with Strong Portfolios</h4>
+                 <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                    <RechartsPieChart>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                        <Pie data={portfolioStrengthData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={60} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} stroke="hsl(var(--border))" strokeWidth={1}>
+                            {portfolioStrengthData.map((entry) => (<Cell key={`cell-${entry.name}`} fill={entry.fill} />))}
+                        </Pie>
+                        <Legend wrapperStyle={{fontSize: "10px"}}/>
+                    </RechartsPieChart>
+                </ChartContainer>
+            </div>
+            <div className="h-60 bg-card p-4 rounded-lg border">
+                <h4 className="text-sm font-semibold mb-2 text-center">Average Resume Scores by Department</h4>
+                <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                    <RechartsBarChart data={resumeScoresByDeptData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                        <XAxis dataKey="dept" fontSize={12} tickLine={false} axisLine={false} />
+                        <YAxis fontSize={12} tickLine={false} axisLine={false} domain={[0,100]}/>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                        <Bar dataKey="score" radius={4}>
+                            {resumeScoresByDeptData.map((entry) => (<Cell key={`cell-${entry.dept}`} fill={entry.fill} />))}
+                        </Bar>
+                    </RechartsBarChart>
+                </ChartContainer>
+            </div>
+            <div className="h-60 bg-card p-4 rounded-lg border md:col-span-2">
+                <h4 className="text-sm font-semibold mb-2 text-center">Placement Funnel</h4>
+                 <ChartContainer config={chartConfig} className="w-full h-[calc(100%-2rem)]">
+                    <RechartsBarChart data={placementFunnelData} layout="vertical" margin={{ top: 5, right: 20, left: 25, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
+                        <XAxis type="number" fontSize={12} tickLine={false} axisLine={false}/>
+                        <YAxis dataKey="stage" type="category" fontSize={12} tickLine={false} axisLine={false} width={80}/>
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                        <Bar dataKey="count" radius={4}>
+                            {placementFunnelData.map((entry) => (<Cell key={`cell-${entry.stage}`} fill={entry.fill} />))}
+                        </Bar>
+                    </RechartsBarChart>
+                </ChartContainer>
+            </div>
+            <Card className="md:col-span-2">
+                <CardHeader><CardTitle className="text-base flex items-center"><Building className="mr-2 h-4 w-4 text-primary"/>Top Companies Interacted</CardTitle></CardHeader>
+                <CardContent className="flex flex-wrap gap-2">
+                    {companiesInteractedData.map(company => <Badge key={company} variant="secondary">{company}</Badge>)}
+                </CardContent>
+            </Card>
+            <Card className="md:col-span-2">
+                 <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-base flex items-center"><Star className="mr-2 h-4 w-4 text-yellow-400 fill-yellow-400"/>Top Performing Students</CardTitle>
+                    <Button size="sm" variant="outline" onClick={handleDownloadTopStudents}><Download className="mr-1 h-3 w-3"/>Export</Button>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Course</TableHead>
+                                <TableHead className="text-center">Portfolio Score</TableHead>
+                                <TableHead>Status</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {topPerformingStudentsData.map(student => (
+                                <TableRow key={student.id}>
+                                    <TableCell className="text-xs">{student.name}</TableCell>
+                                    <TableCell className="text-xs">{student.course}</TableCell>
+                                    <TableCell className="text-xs text-center">{student.portfolioScore}</TableCell>
+                                    <TableCell className="text-xs"><Badge variant={student.placementStatus.startsWith('Placed') ? 'default' : 'secondary'}>{student.placementStatus}</Badge></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+            </CardContent>
+        </Card>
 
       {/* Section 5: Filterable Reports Table */}
       <Card>
@@ -394,8 +602,8 @@ export default function InstitutionalAnalyticsAdminPage() {
                         </SelectContent>
                     </Select>
                 </div>
-                 <Button className="self-end">
-                    <Download className="mr-2 h-4 w-4" /> Generate &amp; Download Report (CSV/PDF)
+                 <Button className="self-end" onClick={handleDownloadFilteredReport}>
+                    <Download className="mr-2 h-4 w-4" /> Generate &amp; Download Report (CSV)
                 </Button>
             </div>
             <div className="overflow-x-auto">
