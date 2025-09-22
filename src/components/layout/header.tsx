@@ -16,7 +16,7 @@ const studentNavLinks = [
   { href: '/portfolio', label: 'Portfolio', icon: <Briefcase className="h-5 w-5" /> },
   { href: '/resume-builder', label: 'Resume Builder', icon: <FileSignature className="h-5 w-5" /> },
   { href: '/resume-reviewer', label: 'Resume Analyzer', icon: <ScanSearch className="h-5 w-5" /> },
-  { href: '/jobs', label: 'Jobs', icon: <Users className="h-5 w-5" /> },
+  
   { href: '/live-sessions', label: 'Webinars', icon: <Presentation className="h-5 w-5" /> },
   { href: '/course-progress', label: 'My Progress', icon: <Route className="h-5 w-5" /> },
   { href: '/knowledge-base', label: 'Knowledge Base', icon: <BookOpenText className="h-5 w-5" /> },

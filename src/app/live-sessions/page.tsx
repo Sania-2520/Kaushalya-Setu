@@ -51,7 +51,7 @@ const generateInitialSessions = (): Session[] => [
   {
     id: "1",
     title: "Mastering React Hooks",
-    speaker: "Jane Doe",
+    speaker: "Mr. Sinha",
     speakerRole: "Senior Frontend Engineer @ Google",
     speakerAvatar: "https://placehold.co/100x100.png?text=JD",
     dateTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
@@ -133,16 +133,16 @@ const generateInitialSessions = (): Session[] => [
 const generateInitialQnA = (): QnAItem[] => [
     {
         id: 'q1',
-        user: 'Student A',
+        user: 'Nishan',
         question: 'What is the best way to manage state in large React applications?',
         timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
         answer: 'Consider using context API for simpler cases, or Redux/Zustand for more complex state management.',
-        answeredBy: 'Jane Doe', 
+        answeredBy: 'Mr.Sinha', 
         answerTimestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
     },
     {
         id: 'q2',
-        user: 'Student B',
+        user: 'Ronit H',
         question: 'How do you handle authentication in Node.js APIs?',
         timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
     }
